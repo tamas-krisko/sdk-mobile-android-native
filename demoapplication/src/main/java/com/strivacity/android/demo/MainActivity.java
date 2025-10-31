@@ -22,6 +22,7 @@ public class MainActivity extends AppCompatActivity {
     private static final String CLIENT_ID = "";
     private static final String REDIRECT_URI = "android://native-flow";
     private static final String POST_LOGOUT_URI = "android://native-flow";
+    public static final String ENTRY_URL = "https://example.org/entry";
     public NativeSDK nativeSDK;
 
     @Override
@@ -48,21 +49,16 @@ public class MainActivity extends AppCompatActivity {
 
         FloatingActionButton cancelFlowButton = findViewById(R.id.cancelFlowButton);
         cancelFlowButton.setVisibility(View.GONE);
-        cancelFlowButton.setOnClickListener(
-            new View.OnClickListener() {
-                @Override
-                public void onClick(View view) {
-                    nativeSDK.cancelFlow();
-                    cancelFlowButton.setVisibility(View.GONE);
-                }
-            }
-        );
+        cancelFlowButton.setOnClickListener(view -> {
+            nativeSDK.cancelFlow();
+            cancelFlowButton.setVisibility(View.GONE);
+        });
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        if (getIntent().getData() != null) {
+        if (getIntent().getData() != null && !getIntent().getData().toString().startsWith(ENTRY_URL)) {
             /* when a fallback initiated and redirected back to the native application,
                this line will trigger the proper OIDC PKCE flow initialize */
             nativeSDK.continueFlow(getIntent().getData());

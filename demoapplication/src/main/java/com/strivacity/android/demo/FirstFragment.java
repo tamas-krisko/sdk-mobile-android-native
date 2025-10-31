@@ -1,5 +1,6 @@
 package com.strivacity.android.demo;
 
+import android.net.Uri;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -20,9 +21,9 @@ import java.util.List;
 public class FirstFragment extends Fragment {
 
     private FragmentFirstBinding binding;
-    MainActivity mainActivity;
-    NativeSDK nativeSDK;
-    FloatingActionButton cancelFlowButton;
+    private MainActivity mainActivity;
+    private NativeSDK nativeSDK;
+    private FloatingActionButton cancelFlowButton;
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
@@ -56,6 +57,18 @@ public class FirstFragment extends Fragment {
             showLoginScreen();
         });
 
+        if (
+            mainActivity != null &&
+            mainActivity.getIntent().getData() != null &&
+            mainActivity.getIntent().getData().toString().startsWith(MainActivity.ENTRY_URL)
+        ) {
+            binding.appLayout.setVisibility(View.GONE);
+            binding.appScreenLayoutContainer.setVisibility(View.VISIBLE);
+
+            entry(mainActivity.getIntent().getData());
+            return;
+        }
+
         nativeSDK.isAuthenticated(authenticated -> {
             if (authenticated) {
                 showProfileScreen(nativeSDK.getIdTokenClaims());
@@ -65,7 +78,86 @@ public class FirstFragment extends Fragment {
         });
     }
 
+    @Override
+    public void onResume() {
+        super.onResume();
+
+        if (nativeSDK.isFallback()) {
+            nativeSDK.cancelFlow();
+        }
+
+        final Uri data = mainActivity.getIntent().getData();
+        if (!nativeSDK.isWorkflowInProgress()) {
+            if (data != null && data.toString().startsWith(MainActivity.ENTRY_URL)) {
+                binding.appLayout.setVisibility(View.GONE);
+                binding.appScreenLayoutContainer.setVisibility(View.VISIBLE);
+
+                entry(data);
+                mainActivity.getIntent().setData(null);
+                return;
+            }
+
+            showLoginScreen();
+        }
+    }
+
+    private void entry(Uri uri) {
+        nativeSDK.entry(
+            uri,
+            binding.appScreenLayout,
+            this::showLoginScreen,
+            throwable -> {
+                Toast.makeText(getContext(), throwable.getMessage(), Toast.LENGTH_SHORT).show();
+                showLoginScreen();
+            },
+            workflowError -> {
+                switch (workflowError) {
+                    case MAGIC_LINK_EXPIRED:
+                        {
+                            Toast.makeText(getContext(), "Your link has expired", Toast.LENGTH_SHORT).show();
+                            break;
+                        }
+                    case CLIENT_MISMATCH:
+                        {
+                            Toast
+                                .makeText(
+                                    getContext(),
+                                    "An unexpected error occurred, please try again (001)",
+                                    Toast.LENGTH_SHORT
+                                )
+                                .show();
+                            break;
+                        }
+                    case INVALID_REDIRECT_URI:
+                        {
+                            Toast
+                                .makeText(
+                                    getContext(),
+                                    "An unexpected error occurred, please try again (002)",
+                                    Toast.LENGTH_SHORT
+                                )
+                                .show();
+                            break;
+                        }
+                    default:
+                        {
+                            Toast
+                                .makeText(getContext(), "Something bad happened, please try again", Toast.LENGTH_SHORT)
+                                .show();
+                            break;
+                        }
+                }
+
+                showLoginScreen();
+            }
+        );
+    }
+
     private void showLoginScreen() {
+        if (cancelFlowButton != null) {
+            cancelFlowButton.setVisibility(View.GONE);
+        }
+
         binding.appLayout.setVisibility(View.VISIBLE);
         binding.appScreenLayoutContainer.setVisibility(View.GONE);
 

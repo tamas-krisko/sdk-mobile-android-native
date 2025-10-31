@@ -3,6 +3,7 @@ package com.strivacity.android.demo.render;
 import android.content.Context;
 
 import com.strivacity.android.demo.render.widgets.CheckboxWidget;
+import com.strivacity.android.demo.render.widgets.CloseWidget;
 import com.strivacity.android.demo.render.widgets.InputWidget;
 import com.strivacity.android.demo.render.widgets.MultiSelectWidget;
 import com.strivacity.android.demo.render.widgets.PasscodeWidget;
@@ -70,6 +71,16 @@ public class ViewFactory extends com.strivacity.android.native_sdk.render.ViewFa
         String formId
     ) {
         return new SubmitWidget(getContext(), submitWidgetModel);
+    }
+
+    @Override
+    protected CloseWidget getCloseView(
+        WidgetModel.CloseWidgetModel closeWidgetModel,
+        BrandingModel brandingModel,
+        String screenId,
+        String formId
+    ) {
+        return new CloseWidget(getContext(), closeWidgetModel);
     }
 
     @Override
