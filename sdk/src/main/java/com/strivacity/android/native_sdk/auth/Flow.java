@@ -19,8 +19,11 @@ import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Objects;
+import java.util.function.Consumer;
 
 public class Flow {
+
+    private static final String ERROR_KEY = "errorKey";
 
     private final TenantConfiguration tenantConfiguration;
     private final CookieHandler cookieHandler;
@@ -42,8 +45,48 @@ public class Flow {
     }
 
     public Uri startSession(LoginParameters loginParameters) {
-        HttpClient.HttpResponse response = HttpClient.followUntil(
+        Uri redirectUri = followUntilWithErrorHandling(
             tenantConfiguration.getAuthEndpoint(oidcParams, loginParameters),
+            ignored -> {}
+        );
+
+        if (redirectUri == null) {
+            throw new NativeSDKError.UnknownError(new Exception("Missing URL"));
+        }
+
+        if (redirectUri.getQueryParameterNames().contains("code")) {
+            return redirectUri;
+        }
+
+        if (!redirectUri.getQueryParameterNames().contains("session_id")) {
+            throw new NativeSDKError.OIDCError("Failed to start session", "session_id missing");
+        }
+
+        sessionId = redirectUri.getQueryParameter("session_id");
+        return null;
+    }
+
+    public boolean startWorkflow(String challenge, Consumer<String> onWorkflowError) {
+        Uri redirectUri = followUntilWithErrorHandling(
+            tenantConfiguration.getEntryEndpoint(challenge),
+            onWorkflowError
+        );
+
+        if (redirectUri == null) {
+            return false;
+        }
+
+        if (!redirectUri.getQueryParameterNames().contains("session_id")) {
+            throw new NativeSDKError.OIDCError("Failed to start session", "session_id missing");
+        }
+
+        sessionId = redirectUri.getQueryParameter("session_id");
+        return true;
+    }
+
+    private Uri followUntilWithErrorHandling(Uri uri, Consumer<String> errorCallback) {
+        HttpClient.HttpResponse response = HttpClient.followUntil(
+            uri,
             cookieHandler,
             httpResponse -> {
                 if (!httpResponse.getHeaders().containsKey("location")) {
@@ -61,6 +104,23 @@ public class Flow {
             }
         );
 
+        if (response.getResponseCode() == 400) {
+            String body = response.getBody();
+
+            try {
+                JSONObject root = new JSONObject(body);
+
+                if (!root.has(ERROR_KEY)) {
+                    throw new NativeSDKError.OIDCError("OIDC Error", response.getBody());
+                }
+
+                errorCallback.accept(root.getString(ERROR_KEY));
+                return null;
+            } catch (JSONException e) {
+                throw new NativeSDKError.OIDCError("OIDC Error", response.getBody());
+            }
+        }
+
         if (!response.getHeaders().containsKey("location")) {
             throw new NativeSDKError.OIDCError("OIDC Error", response.getBody());
         }
@@ -73,16 +133,7 @@ public class Flow {
             );
         }
 
-        if (redirectUri.getQueryParameterNames().contains("code")) {
-            return redirectUri;
-        }
-
-        if (!redirectUri.getQueryParameterNames().contains("session_id")) {
-            throw new NativeSDKError.OIDCError("Failed to start session", "session_id missing");
-        }
-
-        sessionId = redirectUri.getQueryParameter("session_id");
-        return null;
+        return redirectUri;
     }
 
     public HttpClient.HttpResponse initForm() {

@@ -13,12 +13,15 @@ import com.strivacity.android.native_sdk.auth.Flow;
 import com.strivacity.android.native_sdk.auth.IdTokenClaims;
 import com.strivacity.android.native_sdk.auth.NativeSDKError;
 import com.strivacity.android.native_sdk.auth.Session;
+import com.strivacity.android.native_sdk.auth.WorkflowError;
 import com.strivacity.android.native_sdk.auth.config.LoginParameters;
 import com.strivacity.android.native_sdk.auth.config.TenantConfiguration;
 import com.strivacity.android.native_sdk.render.Form;
 import com.strivacity.android.native_sdk.render.ScreenRenderer;
 import com.strivacity.android.native_sdk.render.ViewFactory;
 import com.strivacity.android.native_sdk.util.HttpClient;
+
+import lombok.Getter;
 
 import java.net.CookieHandler;
 import java.time.Instant;
@@ -43,9 +46,16 @@ public class NativeSDK {
     private ScreenRenderer screenRenderer;
     private Consumer<IdTokenClaims> onSuccess;
     private Consumer<Throwable> onError;
+    private Runnable onFlowFinish;
 
     // Session data
     private Session session;
+
+    @Getter
+    private boolean workflowInProgress;
+
+    @Getter
+    private boolean fallback;
 
     public NativeSDK(
         TenantConfiguration tenantConfiguration,
@@ -122,10 +132,26 @@ public class NativeSDK {
         Consumer<IdTokenClaims> onSuccess,
         Consumer<Throwable> onError
     ) {
+        login(loginParameters, parentLayout, onSuccess, onError, () -> error(new NativeSDKError.HostedFlowCancelled()));
+    }
+
+    @MainThread
+    public void login(
+        LoginParameters loginParameters,
+        ViewGroup parentLayout,
+        Consumer<IdTokenClaims> onSuccess,
+        Consumer<Throwable> onError,
+        Runnable onFlowFinish
+    ) {
         backgroundThread.execute(() -> {
             try {
                 this.onSuccess = onSuccess;
                 this.onError = onError;
+                this.onFlowFinish = onFlowFinish;
+
+                fallback = false;
+                workflowInProgress = false;
+
                 flow = new Flow(tenantConfiguration, cookieHandler);
                 screenRenderer =
                     new ScreenRenderer(
@@ -135,7 +161,8 @@ public class NativeSDK {
                         finalizeUri -> {
                             HttpClient.HttpResponse finalizeResponse = flow.follow(finalizeUri);
                             continueFlow(Uri.parse(finalizeResponse.getHeader("Location")));
-                        }
+                        },
+                        this::closeFlow
                     );
                 Uri finalizeUri = flow.startSession(loginParameters);
                 if (finalizeUri != null) {
@@ -161,11 +188,14 @@ public class NativeSDK {
 
     @MainThread
     public void continueFlow(Uri redirectUri) {
+        fallback = false;
+
         if (flow == null) {
             return;
         }
 
         if (redirectUri == null) {
+            workflowInProgress = false;
             error(new NativeSDKError.HostedFlowCancelled());
             return;
         }
@@ -190,6 +220,57 @@ public class NativeSDK {
             } catch (Exception e) {
                 error(new NativeSDKError.UnknownError(e));
             }
+        });
+    }
+
+    @MainThread
+    public void entry(
+        Uri uri,
+        ViewGroup parentLayout,
+        Runnable onFlowFinish,
+        Consumer<Throwable> onError,
+        Consumer<WorkflowError> onWorkflowError
+    ) {
+        backgroundThread.execute(() -> {
+            try {
+                this.onError = onError;
+                this.onFlowFinish = onFlowFinish;
+
+                cleanUp();
+
+                if (uri == null) {
+                    error(new NativeSDKError.UnknownError(new RuntimeException("Entry URI is null")));
+                    return;
+                }
+
+                String challenge = uri.getQueryParameter("challenge");
+                if (challenge == null || challenge.trim().isEmpty()) {
+                    throw new NativeSDKError.UnknownError(new RuntimeException("Entry challenge parameter is missing"));
+                }
+
+                workflowInProgress = true;
+
+                flow = new Flow(tenantConfiguration, cookieHandler);
+                screenRenderer =
+                    new ScreenRenderer(viewFactory, parentLayout, this::submitForm, finalizeUri -> {}, this::closeFlow);
+
+                boolean shouldStartFlow = flow.startWorkflow(
+                    challenge,
+                    fragment -> executeOnMain(() -> onWorkflowError.accept(WorkflowError.valueOfId(fragment)))
+                );
+                if (!shouldStartFlow) {
+                    workflowInProgress = false;
+                    return;
+                }
+            } catch (NativeSDKError.OIDCError oidcError) {
+                error(oidcError);
+                return;
+            } catch (Exception e) {
+                error(new NativeSDKError.UnknownError(e));
+                return;
+            }
+
+            submitForm(null);
         });
     }
 
@@ -224,27 +305,43 @@ public class NativeSDK {
                 httpResponse = flow.submitForm(form.getId(), form.requestBody().toString());
             }
 
-            try {
-                this.screenRenderer.showScreen(httpResponse);
-            } catch (Exception e) {
-                executeOnMain(() -> {
-                    CustomTabsIntent customTabsIntent = new CustomTabsIntent.Builder().build();
-                    customTabsIntent.intent.setPackage("com.android.chrome");
-
-                    customTabsIntent.intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                    customTabsIntent.intent.addFlags(Intent.FLAG_ACTIVITY_NO_HISTORY);
-                    customTabsIntent.launchUrl(viewFactory.getContext(), screenRenderer.getFallbackUrl());
-                });
-            }
+            renderScreen(httpResponse);
         });
     }
 
-    private void success(@Nullable IdTokenClaims idTokenClaims) {
-        if (screenRenderer != null) {
-            screenRenderer.clear();
-            screenRenderer = null;
-            flow = null;
+    private void closeFlow() {
+        cleanUp();
+        executeOnMain(() -> onFlowFinish.run());
+    }
+
+    private void renderScreen(HttpClient.HttpResponse httpResponse) {
+        if (screenRenderer == null) {
+            return;
         }
+
+        try {
+            this.screenRenderer.showScreen(httpResponse);
+        } catch (Exception e) {
+            executeOnMain(() -> {
+                fallback = true;
+
+                CustomTabsIntent customTabsIntent = new CustomTabsIntent.Builder().build();
+                customTabsIntent.intent.setPackage("com.android.chrome");
+
+                customTabsIntent.intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                customTabsIntent.intent.addFlags(Intent.FLAG_ACTIVITY_NO_HISTORY);
+
+                try {
+                    customTabsIntent.launchUrl(viewFactory.getContext(), screenRenderer.getFallbackUrl());
+                } catch (Exception ex) {
+                    executeOnMain(() -> onError.accept(ex));
+                }
+            });
+        }
+    }
+
+    private void success(@Nullable IdTokenClaims idTokenClaims) {
+        cleanUp();
 
         if (sharedPreferences != null) {
             SharedPreferences.Editor edit = sharedPreferences.edit();
@@ -258,15 +355,22 @@ public class NativeSDK {
     }
 
     private void error(Throwable throwable) {
+        cleanUp();
+
+        if (onError != null) {
+            executeOnMain(() -> onError.accept(throwable));
+        }
+    }
+
+    private void cleanUp() {
         if (screenRenderer != null) {
             screenRenderer.clear();
             screenRenderer = null;
             flow = null;
         }
 
-        if (onError != null) {
-            executeOnMain(() -> onError.accept(throwable));
-        }
+        fallback = false;
+        workflowInProgress = false;
     }
 
     private void executeOnMain(Runnable runnable) {
