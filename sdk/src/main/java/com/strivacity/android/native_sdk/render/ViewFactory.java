@@ -13,6 +13,7 @@ import com.strivacity.android.native_sdk.render.widgets.LayoutWidget;
 import com.strivacity.android.native_sdk.render.widgets.MultiSelectWidget;
 import com.strivacity.android.native_sdk.render.widgets.PasscodeWidget;
 import com.strivacity.android.native_sdk.render.widgets.PasskeyEnrollWidget;
+import com.strivacity.android.native_sdk.render.widgets.PasskeyLoginWidget;
 import com.strivacity.android.native_sdk.render.widgets.PasswordWidget;
 import com.strivacity.android.native_sdk.render.widgets.PhoneWidget;
 import com.strivacity.android.native_sdk.render.widgets.StaticWidget;
@@ -64,6 +65,13 @@ public class ViewFactory {
         } else if (widgetModel instanceof WidgetModel.PasskeyEnrollWidgetModel) {
             return getPasskeyEnrollView(
                 (WidgetModel.PasskeyEnrollWidgetModel) widgetModel,
+                brandingModel,
+                screenId,
+                formId
+            );
+        } else if (widgetModel instanceof WidgetModel.PasskeyLoginWidgetModel) {
+            return getPasskeyLoginView(
+                (WidgetModel.PasskeyLoginWidgetModel) widgetModel,
                 brandingModel,
                 screenId,
                 formId
@@ -194,5 +202,14 @@ public class ViewFactory {
         String formId
     ) {
         return new PasskeyEnrollWidget(context, passkeyEnrollWidgetModel);
+    }
+
+    protected PasskeyLoginWidget getPasskeyLoginView(
+        WidgetModel.PasskeyLoginWidgetModel passkeyLoginWidgetModel,
+        BrandingModel brandingModel,
+        String screenId,
+        String formId
+    ) {
+        return new PasskeyLoginWidget(context, passkeyLoginWidgetModel);
     }
 }
