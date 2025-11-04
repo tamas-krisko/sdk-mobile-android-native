@@ -31,7 +31,10 @@ import java.util.stream.Collectors;
 public class ScreenRenderer {
 
     private final ViewFactory viewFactory;
+
+    @Getter
     private final ViewGroup parentLayout;
+
     private final Logging logging;
     private final Consumer<Form> sendFormAction;
     private final Consumer<Uri> finalizeAction;
