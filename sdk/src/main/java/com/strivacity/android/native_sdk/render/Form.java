@@ -10,6 +10,8 @@ import com.strivacity.android.native_sdk.render.widgets.EditableWidget;
 import com.strivacity.android.native_sdk.render.widgets.PasskeyEnrollWidget;
 import com.strivacity.android.native_sdk.render.widgets.PasskeyLoginWidget;
 import com.strivacity.android.native_sdk.render.widgets.SubmitWidget;
+import com.strivacity.android.native_sdk.render.widgets.WebauthnEnrollWidget;
+import com.strivacity.android.native_sdk.render.widgets.WebauthnLoginWidget;
 import com.strivacity.android.native_sdk.render.widgets.Widget;
 import com.strivacity.android.native_sdk.util.JSON;
 
@@ -48,27 +50,21 @@ public class Form {
     public void setOnClickListeners(View.OnClickListener onClickListener, View.OnClickListener onCloseClickListener) {
         getWidgets()
             .values()
-            .stream()
-            .filter(value -> value instanceof SubmitWidget)
-            .forEach(value -> ((SubmitWidget) value).setOnClickListener(onClickListener));
-
-        getWidgets()
-            .values()
-            .stream()
-            .filter(value -> value instanceof CloseWidget)
-            .forEach(value -> ((CloseWidget) value).setOnClickListener(onCloseClickListener));
-
-        getWidgets()
-            .values()
-            .stream()
-            .filter(value -> value instanceof PasskeyEnrollWidget)
-            .forEach(value -> ((PasskeyEnrollWidget) value).setOnClickListener(onClickListener));
-
-        getWidgets()
-            .values()
-            .stream()
-            .filter(value -> value instanceof PasskeyLoginWidget)
-            .forEach(value -> ((PasskeyLoginWidget) value).setOnClickListener(onClickListener));
+            .forEach(widget -> {
+                if (widget instanceof SubmitWidget) {
+                    ((SubmitWidget) widget).setOnClickListener(onClickListener);
+                } else if (widget instanceof CloseWidget) {
+                    ((CloseWidget) widget).setOnClickListener(onCloseClickListener);
+                } else if (widget instanceof PasskeyEnrollWidget) {
+                    ((PasskeyEnrollWidget) widget).setOnClickListener(onClickListener);
+                } else if (widget instanceof PasskeyLoginWidget) {
+                    ((PasskeyLoginWidget) widget).setOnClickListener(onClickListener);
+                } else if (widget instanceof WebauthnEnrollWidget) {
+                    ((WebauthnEnrollWidget) widget).setOnClickListener(onClickListener);
+                } else if (widget instanceof WebauthnLoginWidget) {
+                    ((WebauthnLoginWidget) widget).setOnClickListener(onClickListener);
+                }
+            });
     }
 
     public JSONObject requestBody() {
