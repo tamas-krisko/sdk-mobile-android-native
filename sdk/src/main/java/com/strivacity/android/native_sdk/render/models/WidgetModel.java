@@ -46,6 +46,8 @@ public abstract class WidgetModel {
                 return new CloseWidgetModel(json);
             case "passkeyEnroll":
                 return new PasskeyEnrollWidgetModel(json);
+            case "passkeyLogin":
+                return new PasskeyLoginWidgetModel(json);
             default:
                 throw new RuntimeException("Unknown widget type " + type);
         }
@@ -611,6 +613,53 @@ public abstract class WidgetModel {
                     );
 
             this.enrollOptions = json.object(Fields.enrollOptions);
+        }
+    }
+
+    @Getter
+    @EqualsAndHashCode(callSuper = true)
+    @FieldNameConstants
+    public static class PasskeyLoginWidgetModel extends WidgetModel {
+
+        private final String label;
+        private final Render render;
+        private final JSON assertionOptions;
+
+        @Data
+        @FieldNameConstants
+        public static class Render {
+
+            private final String type;
+            private final PasskeyLoginWidgetHint hint;
+        }
+
+        @Data
+        @FieldNameConstants
+        public static class PasskeyLoginWidgetHint {
+
+            private final String variant;
+
+            PasskeyLoginWidgetHint(JSON hint) {
+                this.variant = hint.string(PasskeyLoginWidgetHint.Fields.variant);
+            }
+        }
+
+        public PasskeyLoginWidgetModel(JSON json) {
+            super(json.string(WidgetModel.Fields.id));
+            this.label = json.string(Fields.label);
+            JSON render = json.object(SubmitWidgetModel.Fields.render);
+
+            this.render =
+                render == null
+                    ? null
+                    : new Render(
+                        render.string(Render.Fields.type),
+                        render.object(Render.Fields.hint) == null
+                            ? null
+                            : new PasskeyLoginWidgetHint(render.object(Render.Fields.hint))
+                    );
+
+            this.assertionOptions = json.object(Fields.assertionOptions);
         }
     }
 }
