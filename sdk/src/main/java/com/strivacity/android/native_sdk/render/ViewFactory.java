@@ -12,6 +12,7 @@ import com.strivacity.android.native_sdk.render.widgets.InputWidget;
 import com.strivacity.android.native_sdk.render.widgets.LayoutWidget;
 import com.strivacity.android.native_sdk.render.widgets.MultiSelectWidget;
 import com.strivacity.android.native_sdk.render.widgets.PasscodeWidget;
+import com.strivacity.android.native_sdk.render.widgets.PasskeyEnrollWidget;
 import com.strivacity.android.native_sdk.render.widgets.PasswordWidget;
 import com.strivacity.android.native_sdk.render.widgets.PhoneWidget;
 import com.strivacity.android.native_sdk.render.widgets.StaticWidget;
@@ -60,6 +61,13 @@ public class ViewFactory {
             return getDateView((WidgetModel.DateWidgetModel) widgetModel, brandingModel, screenId, formId);
         } else if (widgetModel instanceof WidgetModel.CloseWidgetModel) {
             return getCloseView((WidgetModel.CloseWidgetModel) widgetModel, brandingModel, screenId, formId);
+        } else if (widgetModel instanceof WidgetModel.PasskeyEnrollWidgetModel) {
+            return getPasskeyEnrollView(
+                (WidgetModel.PasskeyEnrollWidgetModel) widgetModel,
+                brandingModel,
+                screenId,
+                formId
+            );
         }
 
         throw new RuntimeException();
@@ -177,5 +185,14 @@ public class ViewFactory {
         String formId
     ) {
         return new CloseWidget(context, closeWidgetModel);
+    }
+
+    protected PasskeyEnrollWidget getPasskeyEnrollView(
+        WidgetModel.PasskeyEnrollWidgetModel passkeyEnrollWidgetModel,
+        BrandingModel brandingModel,
+        String screenId,
+        String formId
+    ) {
+        return new PasskeyEnrollWidget(context, passkeyEnrollWidgetModel);
     }
 }

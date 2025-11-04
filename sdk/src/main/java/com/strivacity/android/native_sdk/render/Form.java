@@ -7,6 +7,7 @@ import com.strivacity.android.native_sdk.render.models.FormModel;
 import com.strivacity.android.native_sdk.render.models.WidgetModel;
 import com.strivacity.android.native_sdk.render.widgets.CloseWidget;
 import com.strivacity.android.native_sdk.render.widgets.EditableWidget;
+import com.strivacity.android.native_sdk.render.widgets.PasskeyEnrollWidget;
 import com.strivacity.android.native_sdk.render.widgets.SubmitWidget;
 import com.strivacity.android.native_sdk.render.widgets.Widget;
 import com.strivacity.android.native_sdk.util.JSON;
@@ -55,6 +56,12 @@ public class Form {
             .stream()
             .filter(value -> value instanceof CloseWidget)
             .forEach(value -> ((CloseWidget) value).setOnClickListener(onCloseClickListener));
+
+        getWidgets()
+            .values()
+            .stream()
+            .filter(value -> value instanceof PasskeyEnrollWidget)
+            .forEach(value -> ((PasskeyEnrollWidget) value).setOnClickListener(onClickListener));
     }
 
     public JSONObject requestBody() {
