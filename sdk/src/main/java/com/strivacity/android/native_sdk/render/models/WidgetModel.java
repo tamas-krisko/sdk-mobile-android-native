@@ -50,6 +50,8 @@ public abstract class WidgetModel {
                 return new PasskeyLoginWidgetModel(json);
             case "webauthnEnroll":
                 return new WebauthnEnrollWidgetModel(json);
+            case "webauthnLogin":
+                return new WebauthnLoginWidgetModel(json);
             default:
                 throw new RuntimeException("Unknown widget type " + type);
         }
@@ -709,6 +711,53 @@ public abstract class WidgetModel {
                     );
 
             this.enrollOptions = json.object(Fields.enrollOptions);
+        }
+    }
+
+    @Getter
+    @EqualsAndHashCode(callSuper = true)
+    @FieldNameConstants
+    public static class WebauthnLoginWidgetModel extends WidgetModel {
+
+        private final String label;
+        private final Render render;
+        private final JSON assertionOptions;
+
+        @Data
+        @FieldNameConstants
+        public static class Render {
+
+            private final String type;
+            private final WebauthnLoginWidgetHint hint;
+        }
+
+        @Data
+        @FieldNameConstants
+        public static class WebauthnLoginWidgetHint {
+
+            private final String variant;
+
+            WebauthnLoginWidgetHint(JSON hint) {
+                this.variant = hint.string(WebauthnLoginWidgetHint.Fields.variant);
+            }
+        }
+
+        public WebauthnLoginWidgetModel(JSON json) {
+            super(json.string(WidgetModel.Fields.id));
+            this.label = json.string(Fields.label);
+            JSON render = json.object(SubmitWidgetModel.Fields.render);
+
+            this.render =
+                render == null
+                    ? null
+                    : new Render(
+                        render.string(Render.Fields.type),
+                        render.object(Render.Fields.hint) == null
+                            ? null
+                            : new WebauthnLoginWidgetHint(render.object(Render.Fields.hint))
+                    );
+
+            this.assertionOptions = json.object(PasskeyLoginWidgetModel.Fields.assertionOptions);
         }
     }
 }
