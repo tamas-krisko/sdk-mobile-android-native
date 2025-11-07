@@ -48,6 +48,8 @@ public abstract class WidgetModel {
                 return new PasskeyEnrollWidgetModel(json);
             case "passkeyLogin":
                 return new PasskeyLoginWidgetModel(json);
+            case "webauthnEnroll":
+                return new WebauthnEnrollWidgetModel(json);
             default:
                 throw new RuntimeException("Unknown widget type " + type);
         }
@@ -660,6 +662,53 @@ public abstract class WidgetModel {
                     );
 
             this.assertionOptions = json.object(Fields.assertionOptions);
+        }
+    }
+
+    @Getter
+    @EqualsAndHashCode(callSuper = true)
+    @FieldNameConstants
+    public static class WebauthnEnrollWidgetModel extends WidgetModel {
+
+        private final String label;
+        private final Render render;
+        private final JSON enrollOptions;
+
+        @Data
+        @FieldNameConstants
+        public static class Render {
+
+            private final String type;
+            private final WebauthnEnrollWidgetHint hint;
+        }
+
+        @Data
+        @FieldNameConstants
+        public static class WebauthnEnrollWidgetHint {
+
+            private final String variant;
+
+            WebauthnEnrollWidgetHint(JSON hint) {
+                this.variant = hint.string(WebauthnEnrollWidgetHint.Fields.variant);
+            }
+        }
+
+        public WebauthnEnrollWidgetModel(JSON json) {
+            super(json.string(WidgetModel.Fields.id));
+            this.label = json.string(Fields.label);
+            JSON render = json.object(SubmitWidgetModel.Fields.render);
+
+            this.render =
+                render == null
+                    ? null
+                    : new Render(
+                        render.string(Render.Fields.type),
+                        render.object(Render.Fields.hint) == null
+                            ? null
+                            : new WebauthnEnrollWidgetHint(render.object(Render.Fields.hint))
+                    );
+
+            this.enrollOptions = json.object(Fields.enrollOptions);
         }
     }
 }

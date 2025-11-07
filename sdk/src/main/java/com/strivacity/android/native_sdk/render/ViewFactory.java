@@ -18,6 +18,7 @@ import com.strivacity.android.native_sdk.render.widgets.PasswordWidget;
 import com.strivacity.android.native_sdk.render.widgets.PhoneWidget;
 import com.strivacity.android.native_sdk.render.widgets.StaticWidget;
 import com.strivacity.android.native_sdk.render.widgets.SubmitWidget;
+import com.strivacity.android.native_sdk.render.widgets.WebauthnEnrollWidget;
 import com.strivacity.android.native_sdk.render.widgets.Widget;
 import com.strivacity.android.native_sdk.render.widgets.select.simple.DropdownWidget;
 import com.strivacity.android.native_sdk.render.widgets.select.simple.RadioWidget;
@@ -72,6 +73,13 @@ public class ViewFactory {
         } else if (widgetModel instanceof WidgetModel.PasskeyLoginWidgetModel) {
             return getPasskeyLoginView(
                 (WidgetModel.PasskeyLoginWidgetModel) widgetModel,
+                brandingModel,
+                screenId,
+                formId
+            );
+        } else if (widgetModel instanceof WidgetModel.WebauthnEnrollWidgetModel) {
+            return getWebauthnEnrollView(
+                (WidgetModel.WebauthnEnrollWidgetModel) widgetModel,
                 brandingModel,
                 screenId,
                 formId
@@ -211,5 +219,14 @@ public class ViewFactory {
         String formId
     ) {
         return new PasskeyLoginWidget(context, passkeyLoginWidgetModel);
+    }
+
+    protected WebauthnEnrollWidget getWebauthnEnrollView(
+        WidgetModel.WebauthnEnrollWidgetModel webauthnEnrollWidgetModel,
+        BrandingModel brandingModel,
+        String screenId,
+        String formId
+    ) {
+        return new WebauthnEnrollWidget(context, webauthnEnrollWidgetModel);
     }
 }
