@@ -190,6 +190,7 @@ public abstract class WidgetModel {
         private final String value;
         private final boolean readonly;
         private final String autocomplete;
+        private final Render render;
         private final String inputmode;
         private final Validator validator;
 
@@ -201,6 +202,13 @@ public abstract class WidgetModel {
             private final Integer maxLength;
             private final String regexp;
             private final boolean required;
+        }
+
+        @Data
+        @FieldNameConstants
+        public static class Render {
+
+            private final String autocompleteHint;
         }
 
         public InputWidgetModel(JSON json) {
@@ -221,16 +229,9 @@ public abstract class WidgetModel {
                         validator.string(Validator.Fields.regexp),
                         validator.bool(Validator.Fields.required)
                     );
-        }
-
-        public InputWidgetModel(String label, String value, boolean isRequired) {
-            super(WidgetModel.Fields.id);
-            this.label = label;
-            this.value = value;
-            this.readonly = false;
-            this.autocomplete = null;
-            this.inputmode = null;
-            this.validator = new Validator(null, null, null, isRequired);
+            JSON render = json.object(Fields.render);
+            this.render =
+                render == null ? null : new InputWidgetModel.Render(render.string(Render.Fields.autocompleteHint));
         }
     }
 
