@@ -7,10 +7,14 @@ import com.strivacity.android.demo.render.widgets.CloseWidget;
 import com.strivacity.android.demo.render.widgets.InputWidget;
 import com.strivacity.android.demo.render.widgets.MultiSelectWidget;
 import com.strivacity.android.demo.render.widgets.PasscodeWidget;
+import com.strivacity.android.demo.render.widgets.PasskeyEnrollWidget;
+import com.strivacity.android.demo.render.widgets.PasskeyLoginWidget;
 import com.strivacity.android.demo.render.widgets.PasswordWidget;
 import com.strivacity.android.demo.render.widgets.PhoneWidget;
 import com.strivacity.android.demo.render.widgets.StaticWidget;
 import com.strivacity.android.demo.render.widgets.SubmitWidget;
+import com.strivacity.android.demo.render.widgets.WebauthnEnrollWidget;
+import com.strivacity.android.demo.render.widgets.WebauthnLoginWidget;
 import com.strivacity.android.demo.render.widgets.select.simple.DropdownWidget;
 import com.strivacity.android.demo.render.widgets.select.simple.RadioWidget;
 import com.strivacity.android.native_sdk.render.models.BrandingModel;
@@ -128,5 +132,45 @@ public class ViewFactory extends com.strivacity.android.native_sdk.render.ViewFa
         String formId
     ) {
         return new PasscodeWidget(getContext(), passcodeWidgetModel);
+    }
+
+    @Override
+    protected PasskeyEnrollWidget getPasskeyEnrollView(
+        WidgetModel.PasskeyEnrollWidgetModel passkeyEnrollWidgetModel,
+        BrandingModel brandingModel,
+        String screenId,
+        String formId
+    ) {
+        return new PasskeyEnrollWidget(getContext(), passkeyEnrollWidgetModel);
+    }
+
+    @Override
+    protected PasskeyLoginWidget getPasskeyLoginView(
+        WidgetModel.PasskeyLoginWidgetModel passkeyLoginWidgetModel,
+        BrandingModel brandingModel,
+        String screenId,
+        String formId
+    ) {
+        return new PasskeyLoginWidget(getContext(), passkeyLoginWidgetModel);
+    }
+
+    @Override
+    protected WebauthnEnrollWidget getWebauthnEnrollView(
+        WidgetModel.WebauthnEnrollWidgetModel webauthnEnrollWidgetModel,
+        BrandingModel brandingModel,
+        String screenId,
+        String formId
+    ) {
+        return new WebauthnEnrollWidget(getContext(), webauthnEnrollWidgetModel);
+    }
+
+    @Override
+    protected WebauthnLoginWidget getWebauthnLoginView(
+        WidgetModel.WebauthnLoginWidgetModel webauthnLoginWidgetModel,
+        BrandingModel brandingModel,
+        String screenId,
+        String formId
+    ) {
+        return new WebauthnLoginWidget(getContext(), webauthnLoginWidgetModel);
     }
 }
