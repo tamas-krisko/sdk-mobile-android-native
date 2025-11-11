@@ -54,9 +54,6 @@ public class NativeSDK {
     @Getter
     private boolean workflowInProgress;
 
-    @Getter
-    private boolean fallback;
-
     public NativeSDK(
         TenantConfiguration tenantConfiguration,
         ViewFactory viewFactory,
@@ -149,7 +146,6 @@ public class NativeSDK {
                 this.onError = onError;
                 this.onFlowFinish = onFlowFinish;
 
-                fallback = false;
                 workflowInProgress = false;
 
                 flow = new Flow(tenantConfiguration, cookieHandler);
@@ -188,8 +184,6 @@ public class NativeSDK {
 
     @MainThread
     public void continueFlow(Uri redirectUri) {
-        fallback = false;
-
         if (flow == null) {
             return;
         }
@@ -323,8 +317,6 @@ public class NativeSDK {
             this.screenRenderer.showScreen(httpResponse);
         } catch (Exception e) {
             executeOnMain(() -> {
-                fallback = true;
-
                 CustomTabsIntent customTabsIntent = new CustomTabsIntent.Builder().build();
                 customTabsIntent.intent.setPackage("com.android.chrome");
 
@@ -369,7 +361,6 @@ public class NativeSDK {
             flow = null;
         }
 
-        fallback = false;
         workflowInProgress = false;
     }
 

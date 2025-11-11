@@ -82,10 +82,6 @@ public class FirstFragment extends Fragment {
     public void onResume() {
         super.onResume();
 
-        if (nativeSDK.isFallback()) {
-            nativeSDK.cancelFlow();
-        }
-
         final Uri data = mainActivity.getIntent().getData();
         if (!nativeSDK.isWorkflowInProgress()) {
             if (data != null && data.toString().startsWith(MainActivity.ENTRY_URL)) {
