@@ -320,7 +320,7 @@ public class NativeSDK {
                 CustomTabsIntent customTabsIntent = new CustomTabsIntent.Builder().build();
                 customTabsIntent.intent.setPackage("com.android.chrome");
 
-                customTabsIntent.intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                customTabsIntent.intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
                 customTabsIntent.intent.addFlags(Intent.FLAG_ACTIVITY_NO_HISTORY);
 
                 try {
