@@ -13,15 +13,12 @@ import com.strivacity.android.native_sdk.auth.Flow;
 import com.strivacity.android.native_sdk.auth.IdTokenClaims;
 import com.strivacity.android.native_sdk.auth.NativeSDKError;
 import com.strivacity.android.native_sdk.auth.Session;
-import com.strivacity.android.native_sdk.auth.WorkflowError;
 import com.strivacity.android.native_sdk.auth.config.LoginParameters;
 import com.strivacity.android.native_sdk.auth.config.TenantConfiguration;
 import com.strivacity.android.native_sdk.render.Form;
 import com.strivacity.android.native_sdk.render.ScreenRenderer;
 import com.strivacity.android.native_sdk.render.ViewFactory;
 import com.strivacity.android.native_sdk.util.HttpClient;
-
-import lombok.Getter;
 
 import java.net.CookieHandler;
 import java.time.Instant;
@@ -50,9 +47,6 @@ public class NativeSDK {
 
     // Session data
     private Session session;
-
-    @Getter
-    private boolean workflowInProgress;
 
     public NativeSDK(
         TenantConfiguration tenantConfiguration,
@@ -146,8 +140,6 @@ public class NativeSDK {
                 this.onError = onError;
                 this.onFlowFinish = onFlowFinish;
 
-                workflowInProgress = false;
-
                 flow = new Flow(tenantConfiguration, cookieHandler);
                 screenRenderer =
                     new ScreenRenderer(
@@ -189,7 +181,6 @@ public class NativeSDK {
         }
 
         if (redirectUri == null) {
-            workflowInProgress = false;
             error(new NativeSDKError.HostedFlowCancelled());
             return;
         }
@@ -218,13 +209,7 @@ public class NativeSDK {
     }
 
     @MainThread
-    public void entry(
-        Uri uri,
-        ViewGroup parentLayout,
-        Runnable onFlowFinish,
-        Consumer<Throwable> onError,
-        Consumer<WorkflowError> onWorkflowError
-    ) {
+    public void entry(Uri uri, ViewGroup parentLayout, Runnable onFlowFinish, Consumer<Throwable> onError) {
         backgroundThread.execute(() -> {
             try {
                 this.onError = onError;
@@ -242,18 +227,14 @@ public class NativeSDK {
                     throw new NativeSDKError.UnknownError(new RuntimeException("Entry challenge parameter is missing"));
                 }
 
-                workflowInProgress = true;
-
                 flow = new Flow(tenantConfiguration, cookieHandler);
                 screenRenderer =
                     new ScreenRenderer(viewFactory, parentLayout, this::submitForm, finalizeUri -> {}, this::closeFlow);
 
-                boolean shouldStartFlow = flow.startWorkflow(
-                    challenge,
-                    fragment -> executeOnMain(() -> onWorkflowError.accept(WorkflowError.valueOfId(fragment)))
-                );
-                if (!shouldStartFlow) {
-                    workflowInProgress = false;
+                try {
+                    flow.startWorkflowSession(challenge);
+                } catch (NativeSDKError.WorkflowError workflowError) {
+                    error(workflowError);
                     return;
                 }
             } catch (NativeSDKError.OIDCError oidcError) {
@@ -360,8 +341,6 @@ public class NativeSDK {
             screenRenderer = null;
             flow = null;
         }
-
-        workflowInProgress = false;
     }
 
     private void executeOnMain(Runnable runnable) {

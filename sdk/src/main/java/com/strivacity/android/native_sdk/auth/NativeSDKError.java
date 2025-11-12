@@ -17,6 +17,17 @@ public class NativeSDKError {
         }
     }
 
+    @Getter
+    public static class WorkflowError extends RuntimeException {
+
+        private final String errorKey;
+
+        public WorkflowError(String errorKey) {
+            super(errorKey);
+            this.errorKey = errorKey;
+        }
+    }
+
     public static class HostedFlowCancelled extends RuntimeException {
 
         public HostedFlowCancelled() {

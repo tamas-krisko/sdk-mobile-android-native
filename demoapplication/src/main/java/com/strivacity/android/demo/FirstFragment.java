@@ -14,6 +14,8 @@ import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.strivacity.android.demo.databinding.FragmentFirstBinding;
 import com.strivacity.android.native_sdk.NativeSDK;
 import com.strivacity.android.native_sdk.auth.IdTokenClaims;
+import com.strivacity.android.native_sdk.auth.NativeSDKError;
+import com.strivacity.android.native_sdk.auth.WorkflowError;
 import com.strivacity.android.native_sdk.auth.config.LoginParameters;
 
 import java.util.List;
@@ -57,18 +59,6 @@ public class FirstFragment extends Fragment {
             showLoginScreen();
         });
 
-        if (
-            mainActivity != null &&
-            mainActivity.getIntent().getData() != null &&
-            mainActivity.getIntent().getData().toString().startsWith(MainActivity.ENTRY_URL)
-        ) {
-            binding.appLayout.setVisibility(View.GONE);
-            binding.appScreenLayoutContainer.setVisibility(View.VISIBLE);
-
-            entry(mainActivity.getIntent().getData());
-            return;
-        }
-
         nativeSDK.isAuthenticated(authenticated -> {
             if (authenticated) {
                 showProfileScreen(nativeSDK.getIdTokenClaims());
@@ -83,18 +73,23 @@ public class FirstFragment extends Fragment {
         super.onResume();
 
         final Uri data = mainActivity.getIntent().getData();
-        if (!nativeSDK.isWorkflowInProgress()) {
-            if (data != null && data.toString().startsWith(MainActivity.ENTRY_URL)) {
-                binding.appLayout.setVisibility(View.GONE);
-                binding.appScreenLayoutContainer.setVisibility(View.VISIBLE);
+        if (data != null && data.toString().startsWith(MainActivity.ENTRY_URL)) {
+            mainActivity
+                .getApplicationContext()
+                .getMainExecutor()
+                .execute(() -> {
+                    binding.appLayout.setVisibility(View.GONE);
+                    binding.appScreenLayoutContainer.setVisibility(View.VISIBLE);
+                    cancelFlowButton = mainActivity.findViewById(R.id.cancelFlowButton);
+                    cancelFlowButton.setVisibility(View.VISIBLE);
+                });
 
-                entry(data);
-                mainActivity.getIntent().setData(null);
-                return;
-            }
-
-            showLoginScreen();
+            entry(data);
+            mainActivity.getIntent().setData(null);
+            return;
         }
+
+        showLoginScreen();
     }
 
     private void entry(Uri uri) {
@@ -102,46 +97,48 @@ public class FirstFragment extends Fragment {
             uri,
             binding.appScreenLayout,
             this::showLoginScreen,
-            throwable -> {
-                Toast.makeText(getContext(), throwable.getMessage(), Toast.LENGTH_SHORT).show();
-                showLoginScreen();
-            },
-            workflowError -> {
-                switch (workflowError) {
-                    case MAGIC_LINK_EXPIRED:
-                        {
-                            Toast.makeText(getContext(), "Your link has expired", Toast.LENGTH_SHORT).show();
-                            break;
-                        }
-                    case CLIENT_MISMATCH:
-                        {
-                            Toast
-                                .makeText(
-                                    getContext(),
-                                    "An unexpected error occurred, please try again (001)",
-                                    Toast.LENGTH_SHORT
-                                )
-                                .show();
-                            break;
-                        }
-                    case INVALID_REDIRECT_URI:
-                        {
-                            Toast
-                                .makeText(
-                                    getContext(),
-                                    "An unexpected error occurred, please try again (002)",
-                                    Toast.LENGTH_SHORT
-                                )
-                                .show();
-                            break;
-                        }
-                    default:
-                        {
-                            Toast
-                                .makeText(getContext(), "Something bad happened, please try again", Toast.LENGTH_SHORT)
-                                .show();
-                            break;
-                        }
+            error -> {
+                if (error instanceof NativeSDKError.WorkflowError) {
+                    switch (WorkflowError.valueOfId(((NativeSDKError.WorkflowError) error).getErrorKey())) {
+                        case MAGIC_LINK_EXPIRED:
+                            {
+                                Toast.makeText(getContext(), "Your link has expired", Toast.LENGTH_SHORT).show();
+                                break;
+                            }
+                        case CLIENT_MISMATCH:
+                            {
+                                Toast
+                                    .makeText(
+                                        getContext(),
+                                        "An unexpected error occurred, please try again (001)",
+                                        Toast.LENGTH_SHORT
+                                    )
+                                    .show();
+                                break;
+                            }
+                        case INVALID_REDIRECT_URI:
+                            {
+                                Toast
+                                    .makeText(
+                                        getContext(),
+                                        "An unexpected error occurred, please try again (002)",
+                                        Toast.LENGTH_SHORT
+                                    )
+                                    .show();
+                                break;
+                            }
+                        default:
+                            {
+                                Toast
+                                    .makeText(
+                                        getContext(),
+                                        "Something bad happened, please try again",
+                                        Toast.LENGTH_SHORT
+                                    )
+                                    .show();
+                                break;
+                            }
+                    }
                 }
 
                 showLoginScreen();
