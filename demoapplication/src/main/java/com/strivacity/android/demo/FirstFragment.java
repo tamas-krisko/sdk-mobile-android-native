@@ -86,10 +86,7 @@ public class FirstFragment extends Fragment {
 
             entry(data);
             mainActivity.getIntent().setData(null);
-            return;
         }
-
-        showLoginScreen();
     }
 
     private void entry(Uri uri) {
