@@ -4,11 +4,11 @@ plugins {
 
 android {
 	namespace 'com.strivacity.android.native_sdk'
-	compileSdk 34
+	compileSdk 36
 
 	defaultConfig {
 		minSdk 28
-		targetSdk 34
+		targetSdk 36
 
 		testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 	}
@@ -32,6 +32,7 @@ dependencies {
 	implementation libs.activity
 	implementation libs.browser
 	implementation libs.constraintlayout
+	implementation libs.credentials
 	testImplementation libs.junit
 	androidTestImplementation libs.ext.junit
 	androidTestImplementation libs.espresso.core

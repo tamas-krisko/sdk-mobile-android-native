@@ -4,12 +4,12 @@ plugins {
 
 android {
 	namespace 'com.strivacity.android.demo'
-	compileSdk 34
+	compileSdk 36
 
 	defaultConfig {
 		applicationId "com.strivacity.android_native.demo"
 		minSdk 28
-		targetSdk 34
+		targetSdk 36
 		versionCode 1
 		versionName "1.0"
 	}
@@ -37,6 +37,7 @@ dependencies {
 	implementation libs.navigation.fragment
 	implementation libs.navigation.ui
 	implementation libs.browser
+	implementation libs.credentials
 
 	implementation project(path: ':sdk')
 	implementation libs.activity
