@@ -56,11 +56,11 @@ public class TenantConfiguration {
         return getIssuer().buildUpon().path("/flow/api/v1/form/" + formId).build();
     }
 
-    public Uri getEntryEndpoint(String challenge) {
+    public Uri getEntryEndpoint(String query) {
         return getIssuer()
             .buildUpon()
             .path("/provider/flow/entry")
-            .appendQueryParameter("challenge", challenge)
+            .encodedQuery(query)
             .appendQueryParameter("client_id", getClientId())
             .appendQueryParameter("redirect_uri", getRedirectURI().toString())
             .build();

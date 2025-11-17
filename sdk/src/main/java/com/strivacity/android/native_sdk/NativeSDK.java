@@ -232,7 +232,7 @@ public class NativeSDK {
                     new ScreenRenderer(viewFactory, parentLayout, this::submitForm, finalizeUri -> {}, this::closeFlow);
 
                 try {
-                    flow.startWorkflowSession(challenge);
+                    flow.startWorkflowSession(uri.getQuery());
                 } catch (NativeSDKError.WorkflowError workflowError) {
                     error(workflowError);
                     return;

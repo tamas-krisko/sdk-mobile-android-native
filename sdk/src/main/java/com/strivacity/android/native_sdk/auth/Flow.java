@@ -87,8 +87,8 @@ public class Flow {
         return null;
     }
 
-    public void startWorkflowSession(String challenge) {
-        final HttpClient.HttpResponse response = follow(tenantConfiguration.getEntryEndpoint(challenge));
+    public void startWorkflowSession(String query) {
+        final HttpClient.HttpResponse response = follow(tenantConfiguration.getEntryEndpoint(query));
         if (response.getResponseCode() == 400) {
             String body = response.getBody();
 
