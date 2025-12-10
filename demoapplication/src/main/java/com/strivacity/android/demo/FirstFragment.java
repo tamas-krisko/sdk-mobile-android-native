@@ -15,10 +15,11 @@ import com.strivacity.android.demo.databinding.FragmentFirstBinding;
 import com.strivacity.android.native_sdk.NativeSDK;
 import com.strivacity.android.native_sdk.auth.IdTokenClaims;
 import com.strivacity.android.native_sdk.auth.NativeSDKError;
-import com.strivacity.android.native_sdk.auth.WorkflowError;
+import com.strivacity.android.native_sdk.auth.NativeSDKError.WorkflowError.WorkflowErrorId;
 import com.strivacity.android.native_sdk.auth.config.LoginParameters;
 
 import java.util.List;
+import java.util.Map;
 
 public class FirstFragment extends Fragment {
 
@@ -96,52 +97,23 @@ public class FirstFragment extends Fragment {
             this::showLoginScreen,
             error -> {
                 if (error instanceof NativeSDKError.WorkflowError) {
-                    switch (WorkflowError.valueOfId(((NativeSDKError.WorkflowError) error).getErrorKey())) {
-                        case MAGIC_LINK_EXPIRED:
-                            {
-                                Toast.makeText(getContext(), "Your link has expired", Toast.LENGTH_SHORT).show();
-                                break;
-                            }
-                        case CLIENT_MISMATCH:
-                            {
-                                Toast
-                                    .makeText(
-                                        getContext(),
-                                        "An unexpected error occurred, please try again (001)",
-                                        Toast.LENGTH_SHORT
-                                    )
-                                    .show();
-                                break;
-                            }
-                        case INVALID_REDIRECT_URI:
-                            {
-                                Toast
-                                    .makeText(
-                                        getContext(),
-                                        "An unexpected error occurred, please try again (002)",
-                                        Toast.LENGTH_SHORT
-                                    )
-                                    .show();
-                                break;
-                            }
-                        default:
-                            {
-                                Toast
-                                    .makeText(
-                                        getContext(),
-                                        "Something bad happened, please try again",
-                                        Toast.LENGTH_SHORT
-                                    )
-                                    .show();
-                                break;
-                            }
-                    }
+                    final String mnemonicValue = ((NativeSDKError.WorkflowError) error).getError();
+                    final WorkflowErrorId mnemonic = WorkflowErrorId.valueOfId(mnemonicValue);
+                    final String toastText = WORKFLOW_ERROR_MNEMONIC_TO_MESSAGE
+                            .getOrDefault(mnemonic, "Something bad happened, please try again");
+                    Toast.makeText(getContext(), toastText, Toast.LENGTH_SHORT).show();
                 }
 
                 showLoginScreen();
             }
         );
     }
+
+    private static final Map<WorkflowErrorId, String> WORKFLOW_ERROR_MNEMONIC_TO_MESSAGE = Map.of(
+        WorkflowErrorId.MAGIC_LINK_EXPIRED, "Your link has expired",
+        WorkflowErrorId.CLIENT_MISMATCH, "An unexpected error occurred, please try again (001)",
+        WorkflowErrorId.INVALID_REDIRECT_URI, "An unexpected error occurred, please try again (002)"
+    );
 
     private void showLoginScreen() {
         if (cancelFlowButton != null) {

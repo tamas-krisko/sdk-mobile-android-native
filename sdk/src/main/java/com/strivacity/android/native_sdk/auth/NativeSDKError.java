@@ -1,5 +1,11 @@
 package com.strivacity.android.native_sdk.auth;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+
+import java.util.Arrays;
+import java.util.function.Predicate;
+
 import lombok.Getter;
 
 public class NativeSDKError {
@@ -18,14 +24,37 @@ public class NativeSDKError {
     }
 
     @Getter
-    public static class WorkflowError extends RuntimeException {
+    public static class WorkflowError extends OIDCError {
 
-        private final String errorKey;
-
-        public WorkflowError(String errorKey) {
-            super(errorKey);
-            this.errorKey = errorKey;
+        public WorkflowError(@NonNull String error, @Nullable String errorDescription) {
+            super(error, errorDescription);
         }
+
+        public enum WorkflowErrorId {
+            MAGIC_LINK_EXPIRED("magicLinkExpired"),
+            CLIENT_MISMATCH("clientMismatch"),
+            INVALID_REDIRECT_URI("invalidRedirectUri");
+
+            private final String id;
+
+            WorkflowErrorId(@NonNull String id) {
+                this.id = id;
+            }
+
+            public static WorkflowErrorId valueOfId(String id) {
+                return Arrays.stream(values()).filter(byId(id)).findFirst().orElse(null);
+            }
+
+            /**
+             * Matcher used to filter stream by WorkflowError id
+             * @param idParam id to match against
+             * @return predicate that returns true if workflowError id matches, false otherwise
+             */
+            private static Predicate<WorkflowErrorId> byId(String idParam) {
+                return workflowError -> workflowError.id.equals(idParam);
+            }
+        }
+
     }
 
     public static class HostedFlowCancelled extends RuntimeException {
