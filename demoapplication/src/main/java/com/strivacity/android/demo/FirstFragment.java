@@ -96,22 +96,22 @@ public class FirstFragment extends Fragment {
             binding.appScreenLayout,
             this::showLoginScreen,
             error -> {
+                String mappedErrorMessage = null;
                 if (error instanceof NativeSDKError.WorkflowError) {
-                    final String mnemonicValue = ((NativeSDKError.WorkflowError) error).getError();
-                    final WorkflowErrorId mnemonic = WorkflowErrorId.valueOfId(mnemonicValue);
-                    final String toastText = WORKFLOW_ERROR_MNEMONIC_TO_MESSAGE.getOrDefault(
-                        mnemonic,
-                        "Something bad happened, please try again"
-                    );
-                    Toast.makeText(getContext(), toastText, Toast.LENGTH_SHORT).show();
+                    final String idValue = ((NativeSDKError.WorkflowError) error).getError();
+                    final WorkflowErrorId errorId = WorkflowErrorId.valueOfId(idValue);
+                    mappedErrorMessage = WORKFLOW_ERROR_ID_TO_MESSAGE.get(errorId);
                 }
-
+                final String toastText = mappedErrorMessage != null
+                    ? mappedErrorMessage
+                    : "Something bad happened, please try again";
+                Toast.makeText(getContext(), toastText, Toast.LENGTH_SHORT).show();
                 showLoginScreen();
             }
         );
     }
 
-    private static final Map<WorkflowErrorId, String> WORKFLOW_ERROR_MNEMONIC_TO_MESSAGE = Map.of(
+    private static final Map<WorkflowErrorId, String> WORKFLOW_ERROR_ID_TO_MESSAGE = Map.of(
         WorkflowErrorId.MAGIC_LINK_EXPIRED,
         "Your link has expired",
         WorkflowErrorId.CLIENT_MISMATCH,
