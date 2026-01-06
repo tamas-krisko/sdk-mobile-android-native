@@ -14,6 +14,7 @@ public class LoginParameters {
     private final String loginHint;
     private final List<String> acrValues;
     private final List<String> scopes;
+    private final List<String> audiences;
 
     @Builder.Default
     private String uiLocales = Locale.getDefault().toLanguageTag();

@@ -12,4 +12,8 @@
 	<string name="welcome_text">Welcome</string>
 	<string name="loading_text">Loading…</string>
 	<string name="cancel_flow_button">Cancel flow</string>
+	<string name="audience_input_helper_text">Audiences separated by space</string>
+	<string name="audience_input_hint">Custom Audiences</string>
+	<string name="toast_error_failed_open_intent">could not open Docs page for custom audiences</string>
+	<string name="docs_url_custom_audiences">https://docs.strivacity.com/docs/oauth2-oidc-properties-setup#allowed-custom-audiences</string>
 </resources>
