@@ -60,6 +60,11 @@ public class FirstFragment extends Fragment {
             showLoginScreen();
         });
 
+        binding.buttonRevoke.setOnClickListener(v -> {
+            nativeSDK.revoke();
+            showLoginScreen();
+        });
+
         nativeSDK.isAuthenticated(authenticated -> {
             if (authenticated) {
                 showProfileScreen(nativeSDK.getIdTokenClaims());
@@ -129,6 +134,7 @@ public class FirstFragment extends Fragment {
         binding.appScreenLayoutContainer.setVisibility(View.GONE);
 
         binding.buttonLogin.setVisibility(View.VISIBLE);
+        binding.buttonRevoke.setVisibility(View.GONE);
         binding.buttonLogout.setVisibility(View.GONE);
 
         binding.textviewWelcome.setText("Login required");
@@ -143,6 +149,7 @@ public class FirstFragment extends Fragment {
         binding.appScreenLayoutContainer.setVisibility(View.GONE);
 
         binding.buttonLogin.setVisibility(View.GONE);
+        binding.buttonRevoke.setVisibility(View.VISIBLE);
         binding.buttonLogout.setVisibility(View.VISIBLE);
 
         binding.textviewWelcome.setText(idTokenClaims.getString("email"));

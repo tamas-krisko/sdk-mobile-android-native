@@ -3,6 +3,7 @@ package com.strivacity.android.native_sdk;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.net.Uri;
+import android.util.Log;
 import android.view.ViewGroup;
 
 import androidx.annotation.MainThread;
@@ -325,6 +326,24 @@ public class NativeSDK {
                 edit.apply();
             }
             logging.info("User logged out successfully");
+        });
+    }
+
+    @MainThread
+    public void revoke() {
+        backgroundThread.execute(() -> {
+            try {
+                Flow.revoke(tenantConfiguration, cookieHandler, session, httpClient);
+                if (sharedPreferences != null) {
+                    SharedPreferences.Editor edit = sharedPreferences.edit();
+                    edit.remove(STORE_KEY);
+                    edit.apply();
+                }
+            } catch (Throwable e) {
+                Log.e("REVOKE", "Revoke failed", e);
+            } finally {
+                session = null;
+            }
         });
     }
 

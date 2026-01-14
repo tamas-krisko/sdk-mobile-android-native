@@ -48,6 +48,10 @@ public class TenantConfiguration {
         return getIssuer().buildUpon().path("/oauth2/sessions/logout").build();
     }
 
+    public Uri getRevokeEndpoint() {
+        return getIssuer().buildUpon().path("/oauth2/revoke").build();
+    }
+
     public Uri getInitEndpoint() {
         return getIssuer().buildUpon().path("/flow/api/v1/init").build();
     }

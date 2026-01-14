@@ -318,4 +318,38 @@ public class Flow {
             );
         } catch (Exception ignored) {}
     }
+
+    public static void revoke(
+        TenantConfiguration tenantConfiguration,
+        CookieHandler cookieHandler,
+        Session session,
+        @NonNull HttpClient httpClient
+    ) {
+        final String token = session.getRefreshToken() != null ? session.getRefreshToken() : session.getAccessToken();
+
+        if (token == null) {
+            return;
+        }
+
+        String typeHint = session.getRefreshToken() != null ? "refresh_token" : "access_token";
+
+        httpClient.post(
+            tenantConfiguration.getRevokeEndpoint(),
+            cookieHandler,
+            httpRequest -> {
+                httpRequest.setContentType("application/x-www-form-urlencoded");
+                httpRequest.setFollowRedirects(false);
+                httpRequest.setBody(
+                    tenantConfiguration
+                        .getIssuer()
+                        .buildUpon()
+                        .appendQueryParameter("client_id", tenantConfiguration.getClientId())
+                        .appendQueryParameter("token_type_hint", typeHint)
+                        .appendQueryParameter("token", token)
+                        .build()
+                        .getQuery()
+                );
+            }
+        );
+    }
 }
