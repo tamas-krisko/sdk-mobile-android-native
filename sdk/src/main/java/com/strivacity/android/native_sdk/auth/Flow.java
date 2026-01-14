@@ -1,6 +1,7 @@
 package com.strivacity.android.native_sdk.auth;
 
 import android.net.Uri;
+import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -23,6 +24,20 @@ import java.time.temporal.ChronoUnit;
 import java.util.Objects;
 
 public class Flow {
+
+    /**
+     * JSON Key name for error mnemonic in response object
+     */
+    private static final String ERROR_KEY = "error";
+    /**
+     * JSON Key name for error description in response object
+     */
+    private static final String ERROR_DESCRIPTION_KEY = "error_description";
+
+    private static final int STATUS_CODE_BAD_REQUEST = 400;
+    private static final int STATUS_CODE_INTERNAL_SERVER_ERROR = 500;
+
+    private static final String TAG = "Flow";
 
     private final TenantConfiguration tenantConfiguration;
     private final CookieHandler cookieHandler;
@@ -100,6 +115,68 @@ public class Flow {
 
         sessionId = redirectUri.getQueryParameter("session_id");
         return null;
+    }
+
+    public void startWorkflowSession(@NonNull String query) {
+        Objects.requireNonNull(query, "query parameter cannot be null");
+        final HttpClient.HttpResponse response = follow(tenantConfiguration.getEntryEndpoint(query));
+        // validate response and build Error if needed
+        validateEntryResponse(response);
+        sessionId = extractRequiredSessionId(response);
+    }
+
+    private void validateEntryResponse(@NonNull HttpClient.HttpResponse response) {
+        final int statusCode = response.getResponseCode();
+
+        if (statusCode == STATUS_CODE_BAD_REQUEST) {
+            String body = response.getBody();
+
+            try {
+                JSONObject decodedResponse = new JSONObject(body);
+
+                if (!decodedResponse.has(ERROR_KEY)) {
+                    final RuntimeException innerException = new RuntimeException(
+                        String.format("Workflow error: %s is null", ERROR_KEY)
+                    );
+                    throw new NativeSDKError.UnknownError(innerException);
+                }
+
+                final String error = decodedResponse.getString(ERROR_KEY);
+                final String errorDescription = decodedResponse.optString(ERROR_DESCRIPTION_KEY);
+                throw new NativeSDKError.WorkflowError(error, errorDescription);
+            } catch (JSONException e) {
+                final String message = String.format(
+                    "Workflow error - could not deserialize response: %s",
+                    e.getMessage()
+                );
+                throw new NativeSDKError.UnknownError(new RuntimeException(message));
+            }
+        }
+
+        if (statusCode == STATUS_CODE_INTERNAL_SERVER_ERROR) {
+            Log.d(TAG, "Ensure that authentication client has entry URL configured.");
+            throw new NativeSDKError.UnknownError(
+                new RuntimeException("Server failed to answer - 500 status code received")
+            );
+        }
+
+        if (!response.getHeaders().containsKey("location")) {
+            throw new NativeSDKError.UnknownError(
+                new RuntimeException("Expected to find Location header but it was not found ")
+            );
+        }
+    }
+
+    @NonNull
+    private String extractRequiredSessionId(@NonNull HttpClient.HttpResponse response) {
+        final Uri redirectUri = Uri.parse(response.getHeader("location"));
+        final String sessionId = redirectUri.getQueryParameter("session_id");
+        if (sessionId == null || sessionId.isBlank()) {
+            throw new NativeSDKError.UnknownError(
+                new RuntimeException("Failed to start session: session_id missing or blank")
+            );
+        }
+        return sessionId;
     }
 
     public HttpClient.HttpResponse initForm() {

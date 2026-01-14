@@ -35,6 +35,7 @@ public class ScreenRenderer {
     private final Logging logging;
     private final Consumer<Form> sendFormAction;
     private final Consumer<Uri> finalizeAction;
+    private final Runnable closeFlowAction;
 
     private BrandingModel brandingModel;
     private Map<String, Form> forms;
@@ -179,10 +180,13 @@ public class ScreenRenderer {
                 .collect(Collectors.toMap(Form::getId, Function.identity()));
 
         forms.forEach((formId, form) ->
-            form.setOnClickListeners(click -> {
-                setEnabled(parentLayout, false);
-                sendFormAction.accept(form);
-            })
+            form.setOnClickListeners(
+                v -> {
+                    setEnabled(parentLayout, false);
+                    sendFormAction.accept(form);
+                },
+                v -> closeFlowAction.run()
+            )
         );
 
         layout = viewFactory.layoutWidget(forms, brandingModel, singleLayoutModel);

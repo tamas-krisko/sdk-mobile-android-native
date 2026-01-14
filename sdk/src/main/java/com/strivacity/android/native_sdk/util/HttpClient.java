@@ -49,7 +49,7 @@ public class HttpClient {
             HttpResponse response;
 
             do {
-                response = get(uri, cookieHandler, httpRequest -> {});
+                response = get(uri, cookieHandler, httpRequest -> httpRequest.setFollowRedirects(false));
                 if (predicate.apply(response)) {
                     return response;
                 }

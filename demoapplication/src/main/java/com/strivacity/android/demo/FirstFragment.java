@@ -1,5 +1,6 @@
 package com.strivacity.android.demo;
 
+import android.net.Uri;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -13,16 +14,19 @@ import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.strivacity.android.demo.databinding.FragmentFirstBinding;
 import com.strivacity.android.native_sdk.NativeSDK;
 import com.strivacity.android.native_sdk.auth.IdTokenClaims;
+import com.strivacity.android.native_sdk.auth.NativeSDKError;
+import com.strivacity.android.native_sdk.auth.NativeSDKError.WorkflowError.WorkflowErrorId;
 import com.strivacity.android.native_sdk.auth.config.LoginParameters;
 
 import java.util.List;
+import java.util.Map;
 
 public class FirstFragment extends Fragment {
 
     private FragmentFirstBinding binding;
-    MainActivity mainActivity;
-    NativeSDK nativeSDK;
-    FloatingActionButton cancelFlowButton;
+    private MainActivity mainActivity;
+    private NativeSDK nativeSDK;
+    private FloatingActionButton cancelFlowButton;
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
@@ -65,7 +69,62 @@ public class FirstFragment extends Fragment {
         });
     }
 
+    @Override
+    public void onResume() {
+        super.onResume();
+
+        final Uri data = mainActivity.getIntent().getData();
+        if (data != null && !data.toString().startsWith(MainActivity.REDIRECT_URI)) {
+            mainActivity
+                .getApplicationContext()
+                .getMainExecutor()
+                .execute(() -> {
+                    binding.appLayout.setVisibility(View.GONE);
+                    binding.appScreenLayoutContainer.setVisibility(View.VISIBLE);
+                    cancelFlowButton = mainActivity.findViewById(R.id.cancelFlowButton);
+                    cancelFlowButton.setVisibility(View.VISIBLE);
+                });
+
+            entry(data);
+            mainActivity.getIntent().setData(null);
+        }
+    }
+
+    private void entry(Uri uri) {
+        nativeSDK.entry(
+            uri,
+            binding.appScreenLayout,
+            this::showLoginScreen,
+            error -> {
+                String mappedErrorMessage = null;
+                if (error instanceof NativeSDKError.WorkflowError) {
+                    final String idValue = ((NativeSDKError.WorkflowError) error).getError();
+                    final WorkflowErrorId errorId = WorkflowErrorId.valueOfId(idValue);
+                    mappedErrorMessage = WORKFLOW_ERROR_ID_TO_MESSAGE.get(errorId);
+                }
+                final String toastText = mappedErrorMessage != null
+                    ? mappedErrorMessage
+                    : "Something bad happened, please try again";
+                Toast.makeText(getContext(), toastText, Toast.LENGTH_SHORT).show();
+                showLoginScreen();
+            }
+        );
+    }
+
+    private static final Map<WorkflowErrorId, String> WORKFLOW_ERROR_ID_TO_MESSAGE = Map.of(
+        WorkflowErrorId.MAGIC_LINK_EXPIRED,
+        "Your link has expired",
+        WorkflowErrorId.CLIENT_MISMATCH,
+        "An unexpected error occurred, please try again (001)",
+        WorkflowErrorId.INVALID_REDIRECT_URI,
+        "An unexpected error occurred, please try again (002)"
+    );
+
     private void showLoginScreen() {
+        if (cancelFlowButton != null) {
+            cancelFlowButton.setVisibility(View.GONE);
+        }
+
         binding.appLayout.setVisibility(View.VISIBLE);
         binding.appScreenLayoutContainer.setVisibility(View.GONE);
 

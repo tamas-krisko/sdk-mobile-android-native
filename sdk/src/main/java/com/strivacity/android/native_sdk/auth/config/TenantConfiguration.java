@@ -55,4 +55,14 @@ public class TenantConfiguration {
     public Uri getFormEndpoint(String formId) {
         return getIssuer().buildUpon().path("/flow/api/v1/form/" + formId).build();
     }
+
+    public Uri getEntryEndpoint(String query) {
+        return getIssuer()
+            .buildUpon()
+            .path("/provider/flow/entry")
+            .encodedQuery(query)
+            .appendQueryParameter("client_id", getClientId())
+            .appendQueryParameter("redirect_uri", getRedirectURI().toString())
+            .build();
+    }
 }

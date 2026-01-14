@@ -6,6 +6,7 @@ import com.strivacity.android.native_sdk.render.models.BrandingModel;
 import com.strivacity.android.native_sdk.render.models.LayoutModel;
 import com.strivacity.android.native_sdk.render.models.WidgetModel;
 import com.strivacity.android.native_sdk.render.widgets.CheckboxWidget;
+import com.strivacity.android.native_sdk.render.widgets.CloseWidget;
 import com.strivacity.android.native_sdk.render.widgets.DateWidget;
 import com.strivacity.android.native_sdk.render.widgets.InputWidget;
 import com.strivacity.android.native_sdk.render.widgets.LayoutWidget;
@@ -57,6 +58,8 @@ public class ViewFactory {
             return getPhoneView((WidgetModel.PhoneWidgetModel) widgetModel, brandingModel, screenId, formId);
         } else if (widgetModel instanceof WidgetModel.DateWidgetModel) {
             return getDateView((WidgetModel.DateWidgetModel) widgetModel, brandingModel, screenId, formId);
+        } else if (widgetModel instanceof WidgetModel.CloseWidgetModel) {
+            return getCloseView((WidgetModel.CloseWidgetModel) widgetModel, brandingModel, screenId, formId);
         }
 
         throw new RuntimeException();
@@ -165,5 +168,14 @@ public class ViewFactory {
         String formId
     ) {
         return new DateWidget(context, dateWidgetModel);
+    }
+
+    protected CloseWidget getCloseView(
+        WidgetModel.CloseWidgetModel closeWidgetModel,
+        BrandingModel brandingModel,
+        String screenId,
+        String formId
+    ) {
+        return new CloseWidget(context, closeWidgetModel);
     }
 }

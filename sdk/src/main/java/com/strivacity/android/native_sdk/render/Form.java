@@ -5,6 +5,7 @@ import android.view.View;
 import com.strivacity.android.native_sdk.render.models.BrandingModel;
 import com.strivacity.android.native_sdk.render.models.FormModel;
 import com.strivacity.android.native_sdk.render.models.WidgetModel;
+import com.strivacity.android.native_sdk.render.widgets.CloseWidget;
 import com.strivacity.android.native_sdk.render.widgets.EditableWidget;
 import com.strivacity.android.native_sdk.render.widgets.SubmitWidget;
 import com.strivacity.android.native_sdk.render.widgets.Widget;
@@ -42,12 +43,18 @@ public class Form {
         return model.getId();
     }
 
-    public void setOnClickListeners(View.OnClickListener onClickListener) {
+    public void setOnClickListeners(View.OnClickListener onClickListener, View.OnClickListener onCloseClickListener) {
         getWidgets()
             .values()
             .stream()
             .filter(value -> value instanceof SubmitWidget)
             .forEach(value -> ((SubmitWidget) value).setOnClickListener(onClickListener));
+
+        getWidgets()
+            .values()
+            .stream()
+            .filter(value -> value instanceof CloseWidget)
+            .forEach(value -> ((CloseWidget) value).setOnClickListener(onCloseClickListener));
     }
 
     public JSONObject requestBody() {

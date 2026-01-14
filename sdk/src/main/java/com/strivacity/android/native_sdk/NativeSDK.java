@@ -51,6 +51,7 @@ public class NativeSDK {
     private ScreenRenderer screenRenderer;
     private Consumer<IdTokenClaims> onSuccess;
     private Consumer<Throwable> onError;
+    private Runnable onFlowFinish;
 
     // Session data
     private Session session;
@@ -168,11 +169,24 @@ public class NativeSDK {
         Consumer<IdTokenClaims> onSuccess,
         Consumer<Throwable> onError
     ) {
+        login(loginParameters, parentLayout, onSuccess, onError, () -> error(new NativeSDKError.HostedFlowCancelled()));
+    }
+
+    @MainThread
+    public void login(
+        LoginParameters loginParameters,
+        ViewGroup parentLayout,
+        Consumer<IdTokenClaims> onSuccess,
+        Consumer<Throwable> onError,
+        Runnable onFlowFinish
+    ) {
         backgroundThread.execute(() -> {
             logging.info("Starting login flow");
             try {
                 this.onSuccess = onSuccess;
                 this.onError = onError;
+                this.onFlowFinish = onFlowFinish;
+
                 flow = new Flow(tenantConfiguration, cookieHandler, logging, httpClient);
                 screenRenderer =
                     new ScreenRenderer(
@@ -183,7 +197,8 @@ public class NativeSDK {
                         finalizeUri -> {
                             HttpClient.HttpResponse finalizeResponse = flow.follow(finalizeUri);
                             continueFlow(Uri.parse(finalizeResponse.getHeader("Location")));
-                        }
+                        },
+                        this::closeFlow
                     );
                 Uri finalizeUri = flow.startSession(loginParameters);
                 if (finalizeUri != null) {
@@ -251,6 +266,54 @@ public class NativeSDK {
     }
 
     @MainThread
+    public void entry(Uri uri, ViewGroup parentLayout, Runnable onFlowFinish, Consumer<Throwable> onError) {
+        backgroundThread.execute(() -> {
+            try {
+                this.onError = onError;
+                this.onFlowFinish = onFlowFinish;
+
+                cleanUp();
+
+                if (uri == null) {
+                    error(new NativeSDKError.UnknownError(new RuntimeException("Entry URI is null")));
+                    return;
+                }
+
+                String challenge = uri.getQueryParameter("challenge");
+                if (challenge == null || challenge.trim().isEmpty()) {
+                    throw new NativeSDKError.UnknownError(new RuntimeException("Entry challenge parameter is missing"));
+                }
+
+                flow = new Flow(tenantConfiguration, cookieHandler, logging, httpClient);
+                screenRenderer =
+                    new ScreenRenderer(
+                        viewFactory,
+                        parentLayout,
+                        logging,
+                        this::submitForm,
+                        finalizeUri -> {},
+                        this::closeFlow
+                    );
+
+                try {
+                    flow.startWorkflowSession(uri.getQuery());
+                } catch (NativeSDKError.WorkflowError workflowError) {
+                    error(workflowError);
+                    return;
+                }
+            } catch (NativeSDKError.OIDCError oidcError) {
+                error(oidcError);
+                return;
+            } catch (Exception e) {
+                error(new NativeSDKError.UnknownError(e));
+                return;
+            }
+
+            submitForm(null);
+        });
+    }
+
+    @MainThread
     public void logout() {
         logging.debug("Logging user out");
         backgroundThread.execute(() -> {
@@ -285,29 +348,43 @@ public class NativeSDK {
                 httpResponse = flow.submitForm(form.getId(), form.requestBody().toString());
             }
 
-            try {
-                this.screenRenderer.showScreen(httpResponse);
-            } catch (Exception e) {
-                executeOnMain(() -> {
-                    logging.debug(String.format("%s", e));
-                    logging.warn("Triggering cloud initiated fallback");
-                    CustomTabsIntent customTabsIntent = new CustomTabsIntent.Builder().build();
-                    customTabsIntent.intent.setPackage("com.android.chrome");
-
-                    customTabsIntent.intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                    customTabsIntent.intent.addFlags(Intent.FLAG_ACTIVITY_NO_HISTORY);
-                    customTabsIntent.launchUrl(viewFactory.getContext(), screenRenderer.getFallbackUrl());
-                });
-            }
+            renderScreen(httpResponse);
         });
     }
 
-    private void success(@Nullable IdTokenClaims idTokenClaims) {
-        if (screenRenderer != null) {
-            screenRenderer.clear();
-            screenRenderer = null;
-            flow = null;
+    private void closeFlow() {
+        cleanUp();
+        executeOnMain(() -> onFlowFinish.run());
+    }
+
+    private void renderScreen(HttpClient.HttpResponse httpResponse) {
+        if (screenRenderer == null) {
+            return;
         }
+
+        try {
+            this.screenRenderer.showScreen(httpResponse);
+        } catch (Exception e) {
+            executeOnMain(() -> {
+                logging.debug(String.format("%s", e));
+                logging.warn("Triggering cloud initiated fallback");
+                CustomTabsIntent customTabsIntent = new CustomTabsIntent.Builder().build();
+                customTabsIntent.intent.setPackage("com.android.chrome");
+
+                customTabsIntent.intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                customTabsIntent.intent.addFlags(Intent.FLAG_ACTIVITY_NO_HISTORY);
+
+                try {
+                    customTabsIntent.launchUrl(viewFactory.getContext(), screenRenderer.getFallbackUrl());
+                } catch (Exception ex) {
+                    executeOnMain(() -> onError.accept(ex));
+                }
+            });
+        }
+    }
+
+    private void success(@Nullable IdTokenClaims idTokenClaims) {
+        cleanUp();
 
         if (sharedPreferences != null) {
             SharedPreferences.Editor edit = sharedPreferences.edit();
@@ -323,14 +400,18 @@ public class NativeSDK {
     }
 
     private void error(Throwable throwable) {
+        cleanUp();
+
+        if (onError != null) {
+            executeOnMain(() -> onError.accept(throwable));
+        }
+    }
+
+    private void cleanUp() {
         if (screenRenderer != null) {
             screenRenderer.clear();
             screenRenderer = null;
             flow = null;
-        }
-
-        if (onError != null) {
-            executeOnMain(() -> onError.accept(throwable));
         }
     }
 

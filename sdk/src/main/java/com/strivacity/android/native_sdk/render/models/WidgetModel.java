@@ -42,6 +42,8 @@ public abstract class WidgetModel {
                 return new PhoneWidgetModel(json);
             case "date":
                 return new DateWidgetModel(json);
+            case "close":
+                return new CloseWidgetModel(json);
             default:
                 throw new RuntimeException("Unknown widget type " + type);
         }
@@ -116,6 +118,56 @@ public abstract class WidgetModel {
                         render.object(Render.Fields.hint) == null
                             ? null
                             : new SubmitWidgetHint(render.object(Render.Fields.hint))
+                    );
+        }
+    }
+
+    @Getter
+    @EqualsAndHashCode(callSuper = true)
+    @FieldNameConstants
+    public static class CloseWidgetModel extends WidgetModel {
+
+        private final String label;
+        private final Render render;
+
+        @Data
+        @FieldNameConstants
+        public static class Render {
+
+            private final String type;
+            private final String textColor;
+            private final String bgColor;
+            private final CloseWidgetHint hint;
+        }
+
+        @Data
+        @FieldNameConstants
+        public static class CloseWidgetHint {
+
+            private final String icon;
+            private final String variant;
+
+            CloseWidgetHint(JSON hint) {
+                this.icon = hint.string(CloseWidgetHint.Fields.icon);
+                this.variant = hint.string(CloseWidgetHint.Fields.variant);
+            }
+        }
+
+        public CloseWidgetModel(JSON json) {
+            super(json.string(WidgetModel.Fields.id));
+            this.label = json.string(Fields.label);
+            JSON render = json.object(SubmitWidgetModel.Fields.render);
+
+            this.render =
+                render == null
+                    ? null
+                    : new Render(
+                        render.string(Render.Fields.type),
+                        render.string(Render.Fields.textColor),
+                        render.string(Render.Fields.bgColor),
+                        render.object(Render.Fields.hint) == null
+                            ? null
+                            : new CloseWidgetHint(render.object(Render.Fields.hint))
                     );
         }
     }
