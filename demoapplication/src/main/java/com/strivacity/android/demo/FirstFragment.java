@@ -1,7 +1,9 @@
 package com.strivacity.android.demo;
 
+import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -20,6 +22,7 @@ import com.strivacity.android.native_sdk.auth.config.LoginParameters;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 public class FirstFragment extends Fragment {
 
@@ -38,14 +41,30 @@ public class FirstFragment extends Fragment {
         super.onViewCreated(view, savedInstanceState);
         mainActivity = ((MainActivity) view.getContext());
         nativeSDK = mainActivity.nativeSDK;
+
+        final Uri docsPage = Uri.parse(getString(R.string.docs_url_custom_audiences));
+        final Intent openActionsDocs = new Intent(Intent.ACTION_VIEW, docsPage);
+
+        binding.textInputLayoutAudiences.setEndIconOnClickListener(v -> {
+            try {
+                mainActivity.startActivity(openActionsDocs);
+            } catch (IllegalArgumentException ex) {
+                Log.e("FirstFragment", "Could not open Docs page for custom audiences", ex);
+                Toast.makeText(mainActivity, R.string.toast_error_failed_open_intent, Toast.LENGTH_SHORT).show();
+            }
+        });
+
         binding.buttonLogin.setOnClickListener(v -> {
             binding.appLayout.setVisibility(View.GONE);
             binding.appScreenLayoutContainer.setVisibility(View.VISIBLE);
             cancelFlowButton = mainActivity.findViewById(R.id.cancelFlowButton);
             cancelFlowButton.setVisibility(View.VISIBLE);
 
+            String inputText = Objects.requireNonNull(binding.textInputField.getText()).toString();
+            List<String> audiences = inputText.isBlank() ? null : List.of(inputText.split("\\s+"));
+
             nativeSDK.login(
-                LoginParameters.builder().scopes(List.of("openid", "email")).build(),
+                LoginParameters.builder().scopes(List.of("openid", "email")).audiences(audiences).build(),
                 binding.appScreenLayout,
                 this::showProfileScreen,
                 throwable -> {

@@ -23,6 +23,27 @@
 		android:id="@+id/app_layout" android:layout_width="match_parent"
 		android:layout_height="wrap_content" android:padding="16dp">
 
+		<com.google.android.material.textfield.TextInputLayout
+			android:id="@+id/text_input_layout_audiences"
+			android:layout_width="0dp" android:layout_height="wrap_content"
+			android:layout_marginStart="16dp" android:layout_marginEnd="16dp"
+			android:layout_marginBottom="16dp"
+			app:endIconContentDescription="Help"
+			app:endIconDrawable="@drawable/ic_help" app:endIconMode="custom"
+			app:helperText="@string/audience_input_helper_text"
+			app:layout_constraintBottom_toTopOf="@id/button_login"
+			app:layout_constraintEnd_toEndOf="parent"
+			app:layout_constraintStart_toStartOf="parent"
+			app:layout_constraintTop_toTopOf="parent">
+
+			<com.google.android.material.textfield.TextInputEditText
+				android:id="@+id/text_input_field"
+				android:layout_width="match_parent"
+				android:layout_height="wrap_content"
+				android:hint="@string/audience_input_hint" />
+
+		</com.google.android.material.textfield.TextInputLayout>
+
 		<com.google.android.material.button.MaterialButton
 			android:id="@+id/button_login" android:layout_width="wrap_content"
 			android:layout_height="wrap_content"
@@ -30,7 +51,7 @@
 			app:layout_constraintBottom_toTopOf="@id/textview_welcome"
 			app:layout_constraintEnd_toEndOf="parent"
 			app:layout_constraintStart_toStartOf="parent"
-			app:layout_constraintTop_toTopOf="parent" />
+			app:layout_constraintTop_toBottomOf="@id/text_input_layout_audiences" />
 
 		<com.google.android.material.button.MaterialButton
 			android:id="@+id/button_revoke" android:layout_width="wrap_content"

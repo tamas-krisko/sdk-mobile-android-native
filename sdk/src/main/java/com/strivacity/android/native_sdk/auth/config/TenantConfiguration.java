@@ -4,6 +4,10 @@ import android.net.Uri;
 
 import lombok.Data;
 
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
+
 @Data
 public class TenantConfiguration {
 
@@ -26,16 +30,26 @@ public class TenantConfiguration {
             .appendQueryParameter("scope", String.join(" ", loginParameters.getScopes()));
 
         if (loginParameters.getLoginHint() != null) {
-            builder = builder.appendQueryParameter("login_hint", loginParameters.getLoginHint());
+            builder.appendQueryParameter("login_hint", loginParameters.getLoginHint());
         }
 
         if (loginParameters.getAcrValues() != null) {
-            builder = builder.appendQueryParameter("acr_values", String.join(" ", loginParameters.getAcrValues()));
+            builder.appendQueryParameter("acr_values", String.join(" ", loginParameters.getAcrValues()));
         }
 
         if (loginParameters.getUiLocales() != null) {
-            builder = builder.appendQueryParameter("ui_locales", loginParameters.getUiLocales());
+            builder.appendQueryParameter("ui_locales", loginParameters.getUiLocales());
         }
+
+        final List<String> audiences = loginParameters.getAudiences();
+
+        Optional
+            .ofNullable(audiences)
+            .map(strings ->
+                strings.stream().filter(s -> s != null && !s.trim().isBlank()).collect(Collectors.joining(" "))
+            )
+            .filter(p -> !p.isBlank())
+            .ifPresent(audiencesParam -> builder.appendQueryParameter("audiences", audiencesParam));
 
         return builder.build();
     }
