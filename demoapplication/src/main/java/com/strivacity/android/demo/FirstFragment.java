@@ -167,6 +167,7 @@ public class FirstFragment extends Fragment {
         binding.appLayout.setVisibility(View.VISIBLE);
         binding.appScreenLayoutContainer.setVisibility(View.GONE);
 
+        binding.textInputLayoutAudiences.setVisibility(View.GONE);
         binding.buttonLogin.setVisibility(View.GONE);
         binding.buttonRevoke.setVisibility(View.VISIBLE);
         binding.buttonLogout.setVisibility(View.VISIBLE);
