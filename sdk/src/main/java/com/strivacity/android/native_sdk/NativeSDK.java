@@ -58,7 +58,7 @@ public class NativeSDK {
     private Session session;
 
     @NonNull
-    private SdkMode sdkMode;
+    private final SdkMode sdkMode;
 
     public NativeSDK(
         TenantConfiguration tenantConfiguration,
@@ -213,7 +213,7 @@ public class NativeSDK {
                         this::submitForm,
                         finalizeUri -> {
                             HttpClient.HttpResponse finalizeResponse = flow.follow(finalizeUri);
-                            continueFlow(Uri.parse(finalizeResponse.getHeader("Location")));
+                            continueFlow(Uri.parse(finalizeResponse.getBody()));
                         },
                         this::closeFlow
                     );
@@ -223,7 +223,7 @@ public class NativeSDK {
                     return;
                 }
             } catch (NativeSDKError.OIDCError oidcError) {
-                logging.info("Login flow failed " + oidcError.toString());
+                logging.info("Login flow failed " + oidcError);
                 logging.debug(
                     String.format(
                         "OIDC ERROR: %s, Description: %s",
@@ -234,7 +234,7 @@ public class NativeSDK {
                 error(oidcError);
                 return;
             } catch (Exception e) {
-                logging.error("Login flow filed" + e, e);
+                logging.error("Login flow failed" + e, e);
                 error(new NativeSDKError.UnknownError(e));
                 return;
             }

@@ -1,7 +1,6 @@
 package com.strivacity.android.native_sdk.auth;
 
 import android.net.Uri;
-import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -38,7 +37,7 @@ public class Flow {
     private static final int STATUS_CODE_BAD_REQUEST = 400;
     private static final int STATUS_CODE_INTERNAL_SERVER_ERROR = 500;
 
-    private static final String TAG = "Flow";
+    private static final int STATUS_CODE_OK = 200;
 
     private final TenantConfiguration tenantConfiguration;
     private final CookieHandler cookieHandler;
@@ -98,12 +97,15 @@ public class Flow {
             }
         );
 
-        if (!response.getHeaders().containsKey("location")) {
-            logging.warn("Expected to find location but none were found");
-            throw new NativeSDKError.OIDCError("OIDC Error", response.getBody());
+        if (response.getResponseCode() != STATUS_CODE_OK) {
+            logging.warn("Expected response with status code 200");
+            throw new NativeSDKError.OIDCError(
+                "OIDC Error",
+                String.format("Invalid response status code: %s", response.getResponseCode())
+            );
         }
 
-        Uri redirectUri = Uri.parse(response.getHeader("location"));
+        Uri redirectUri = Uri.parse(response.getBody());
         if (redirectUri.getQueryParameterNames().contains("error")) {
             throw new NativeSDKError.OIDCError(
                 redirectUri.getQueryParameter("error"),
@@ -160,22 +162,23 @@ public class Flow {
         }
 
         if (statusCode == STATUS_CODE_INTERNAL_SERVER_ERROR) {
-            Log.d(TAG, "Ensure that authentication client has entry URL configured.");
+            logging.warn("Ensure that authentication client has entry URL configured.");
             throw new NativeSDKError.UnknownError(
                 new RuntimeException("Server failed to answer - 500 status code received")
             );
         }
 
-        if (!response.getHeaders().containsKey("location")) {
+        if (response.getResponseCode() != STATUS_CODE_OK) {
+            logging.warn("Expected response with status code 200");
             throw new NativeSDKError.UnknownError(
-                new RuntimeException("Expected to find Location header but it was not found ")
+                new RuntimeException(String.format("Invalid response status code: %s", response.getResponseCode()))
             );
         }
     }
 
     @NonNull
     private String extractRequiredSessionId(@NonNull HttpClient.HttpResponse response) {
-        final Uri redirectUri = Uri.parse(response.getHeader("location"));
+        final Uri redirectUri = Uri.parse(response.getBody());
         final String sessionId = redirectUri.getQueryParameter("session_id");
         if (sessionId == null || sessionId.isBlank()) {
             throw new NativeSDKError.UnknownError(
