@@ -57,13 +57,17 @@ public class NativeSDK {
     // Session data
     private Session session;
 
+    @NonNull
+    private SdkMode sdkMode;
+
     public NativeSDK(
         TenantConfiguration tenantConfiguration,
         ViewFactory viewFactory,
         CookieHandler cookieHandler,
         SharedPreferences sharedPreferences,
         @NonNull Logging logging,
-        @NonNull HttpClient httpClient
+        @NonNull HttpClient httpClient,
+        SdkMode sdkMode
     ) {
         this.tenantConfiguration = tenantConfiguration;
         this.sharedPreferences = sharedPreferences;
@@ -72,6 +76,7 @@ public class NativeSDK {
         this.backgroundThread = Executors.newSingleThreadExecutor();
         this.logging = logging;
         this.httpClient = httpClient;
+        this.sdkMode = sdkMode != null ? sdkMode : SdkMode.Android;
 
         if (sharedPreferences != null) {
             String data = sharedPreferences.getString(STORE_KEY, null);
@@ -82,6 +87,17 @@ public class NativeSDK {
         } else {
             logging.warn("No shared preference provided - this could lead to unintended behavior.");
         }
+    }
+
+    public NativeSDK(
+        TenantConfiguration tenantConfiguration,
+        ViewFactory viewFactory,
+        CookieHandler cookieHandler,
+        SharedPreferences sharedPreferences,
+        @NonNull Logging logging,
+        @NonNull HttpClient httpClient
+    ) {
+        this(tenantConfiguration, viewFactory, cookieHandler, sharedPreferences, logging, httpClient, SdkMode.Android);
     }
 
     public NativeSDK(
@@ -188,7 +204,7 @@ public class NativeSDK {
                 this.onError = onError;
                 this.onFlowFinish = onFlowFinish;
 
-                flow = new Flow(tenantConfiguration, cookieHandler, logging, httpClient);
+                flow = new Flow(tenantConfiguration, cookieHandler, logging, httpClient, sdkMode);
                 screenRenderer =
                     new ScreenRenderer(
                         viewFactory,
@@ -285,7 +301,7 @@ public class NativeSDK {
                     throw new NativeSDKError.UnknownError(new RuntimeException("Entry challenge parameter is missing"));
                 }
 
-                flow = new Flow(tenantConfiguration, cookieHandler, logging, httpClient);
+                flow = new Flow(tenantConfiguration, cookieHandler, logging, httpClient, sdkMode);
                 screenRenderer =
                     new ScreenRenderer(
                         viewFactory,
@@ -436,5 +452,38 @@ public class NativeSDK {
 
     private void executeOnMain(Runnable runnable) {
         viewFactory.getContext().getMainExecutor().execute(runnable);
+    }
+
+    /**
+     * Defines the mode for determining data content in Journey Flow responses.
+     * <p>
+     * The mode controls what information is included in screen responses, allowing
+     * applications to choose between different levels of layout and branding data.
+     *
+     * @see <a href="https://docs.strivacity.com/reference/journey-flow-api-for-native-clients#step-1-get-oauth2auth">
+     *      Journey Flow API for Native Clients</a>
+     */
+    public enum SdkMode {
+        /**
+         * Screen responses include layout information but exclude branding information.
+         */
+        Android("android"),
+
+        /**
+         * Screen responses exclude both layout and branding information (minimal mode).
+         */
+        AndroidMinimal("android-minimal");
+
+        @NonNull
+        public final String value;
+
+        /**
+         * Constructs an SdkMode with the specified string value.
+         *
+         * @param value the string representation of this mode
+         */
+        SdkMode(@NonNull String value) {
+            this.value = value;
+        }
     }
 }

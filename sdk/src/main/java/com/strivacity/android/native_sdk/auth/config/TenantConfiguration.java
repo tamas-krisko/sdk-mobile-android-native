@@ -2,6 +2,8 @@ package com.strivacity.android.native_sdk.auth.config;
 
 import android.net.Uri;
 
+import com.strivacity.android.native_sdk.NativeSDK;
+
 import lombok.Data;
 
 import java.util.List;
@@ -16,7 +18,7 @@ public class TenantConfiguration {
     private final Uri redirectURI;
     private final Uri postLogoutURI;
 
-    public Uri getAuthEndpoint(OidcParams oidcParams, LoginParameters loginParameters) {
+    public Uri getAuthEndpoint(OidcParams oidcParams, LoginParameters loginParameters, NativeSDK.SdkMode sdkMode) {
         Uri.Builder builder = issuer
             .buildUpon()
             .path("/oauth2/auth")
@@ -27,7 +29,8 @@ public class TenantConfiguration {
             .appendQueryParameter("nonce", oidcParams.getNonce())
             .appendQueryParameter("code_challenge", oidcParams.getCodeChallenge())
             .appendQueryParameter("code_challenge_method", "S256")
-            .appendQueryParameter("scope", String.join(" ", loginParameters.getScopes()));
+            .appendQueryParameter("scope", String.join(" ", loginParameters.getScopes()))
+            .appendQueryParameter("sdk", sdkMode.value);
 
         if (loginParameters.getLoginHint() != null) {
             builder.appendQueryParameter("login_hint", loginParameters.getLoginHint());
@@ -74,13 +77,14 @@ public class TenantConfiguration {
         return getIssuer().buildUpon().path("/flow/api/v1/form/" + formId).build();
     }
 
-    public Uri getEntryEndpoint(String query) {
+    public Uri getEntryEndpoint(String query, NativeSDK.SdkMode sdkMode) {
         return getIssuer()
             .buildUpon()
             .path("/provider/flow/entry")
             .encodedQuery(query)
             .appendQueryParameter("client_id", getClientId())
             .appendQueryParameter("redirect_uri", getRedirectURI().toString())
+            .appendQueryParameter("sdk", sdkMode.value)
             .build();
     }
 }

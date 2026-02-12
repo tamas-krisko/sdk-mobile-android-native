@@ -6,6 +6,7 @@ import android.util.Log;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
+import com.strivacity.android.native_sdk.NativeSDK;
 import com.strivacity.android.native_sdk.auth.config.LoginParameters;
 import com.strivacity.android.native_sdk.auth.config.OidcParams;
 import com.strivacity.android.native_sdk.auth.config.TenantConfiguration;
@@ -53,16 +54,21 @@ public class Flow {
     @NonNull
     private final HttpClient httpClient;
 
+    @NonNull
+    private final NativeSDK.SdkMode sdkMode;
+
     public Flow(
         TenantConfiguration tenantConfiguration,
         CookieHandler cookieHandler,
         @NonNull Logging logging,
-        @NonNull HttpClient httpClient
+        @NonNull HttpClient httpClient,
+        @NonNull NativeSDK.SdkMode sdkMode
     ) {
         this.tenantConfiguration = tenantConfiguration;
         this.cookieHandler = cookieHandler;
         this.logging = logging;
         this.httpClient = httpClient;
+        this.sdkMode = sdkMode;
 
         try {
             oidcParams = new OidcParams();
@@ -74,7 +80,7 @@ public class Flow {
     public Uri startSession(LoginParameters loginParameters) {
         logging.info("Login flow started");
         HttpClient.HttpResponse response = httpClient.followUntil(
-            tenantConfiguration.getAuthEndpoint(oidcParams, loginParameters),
+            tenantConfiguration.getAuthEndpoint(oidcParams, loginParameters, sdkMode),
             cookieHandler,
             httpResponse -> {
                 if (!httpResponse.getHeaders().containsKey("location")) {
@@ -119,7 +125,7 @@ public class Flow {
 
     public void startWorkflowSession(@NonNull String query) {
         Objects.requireNonNull(query, "query parameter cannot be null");
-        final HttpClient.HttpResponse response = follow(tenantConfiguration.getEntryEndpoint(query));
+        final HttpClient.HttpResponse response = follow(tenantConfiguration.getEntryEndpoint(query, sdkMode));
         // validate response and build Error if needed
         validateEntryResponse(response);
         sessionId = extractRequiredSessionId(response);
