@@ -126,6 +126,11 @@ public class FirstFragment extends Fragment {
                     final WorkflowErrorId errorId = WorkflowErrorId.valueOfId(idValue);
                     mappedErrorMessage = WORKFLOW_ERROR_ID_TO_MESSAGE.get(errorId);
                 }
+
+                if (error instanceof NativeSDKError.HostedFlowCancelled) {
+                    mappedErrorMessage = error.getLocalizedMessage();
+                }
+
                 final String toastText = mappedErrorMessage != null
                     ? mappedErrorMessage
                     : "Something bad happened, please try again";
