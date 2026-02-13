@@ -126,6 +126,11 @@ public class FirstFragment extends Fragment {
                     final WorkflowErrorId errorId = WorkflowErrorId.valueOfId(idValue);
                     mappedErrorMessage = WORKFLOW_ERROR_ID_TO_MESSAGE.get(errorId);
                 }
+
+                if (error instanceof NativeSDKError.HostedFlowCancelled) {
+                    mappedErrorMessage = error.getLocalizedMessage();
+                }
+
                 final String toastText = mappedErrorMessage != null
                     ? mappedErrorMessage
                     : "Something bad happened, please try again";
@@ -167,6 +172,7 @@ public class FirstFragment extends Fragment {
         binding.appLayout.setVisibility(View.VISIBLE);
         binding.appScreenLayoutContainer.setVisibility(View.GONE);
 
+        binding.textInputLayoutAudiences.setVisibility(View.GONE);
         binding.buttonLogin.setVisibility(View.GONE);
         binding.buttonRevoke.setVisibility(View.VISIBLE);
         binding.buttonLogout.setVisibility(View.VISIBLE);
